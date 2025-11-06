@@ -133,7 +133,7 @@ Options:
 
 ## License
 
-MIT (or your preferred license)
+MIT License
 
 ## Contributing
 
