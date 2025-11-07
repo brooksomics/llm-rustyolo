@@ -6,3 +6,24 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.5.7", features = ["derive", "env"] }
 dirs = "5.0.1"
+
+[lints.clippy]
+# Deny clippy warnings in CI/strict mode
+# Run with: cargo clippy -- -D warnings
+
+# Pedantic lints (best practices)
+pedantic = { level = "warn", priority = -1 }
+
+# Specific lints to enforce
+all = "warn"
+correctness = "deny"
+suspicious = "warn"
+complexity = "warn"
+perf = "warn"
+style = "warn"
+
+# Allow some pedantic lints that are too noisy
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"

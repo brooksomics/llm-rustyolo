@@ -1,7 +1,7 @@
-use std::process::{Command, Stdio};
+use clap::Parser;
 use std::env;
 use std::path::PathBuf;
-use clap::Parser;
+use std::process::{Command, Stdio};
 
 /// A secure, firewalled Docker wrapper for AI agents.
 ///
@@ -50,9 +50,7 @@ fn main() {
     let args = Args::parse();
 
     let mut docker_cmd = Command::new("docker");
-    docker_cmd.arg("run")
-        .arg("-it")
-        .arg("--rm");
+    docker_cmd.arg("run").arg("-it").arg("--rm");
 
     // --- 3. Network Isolation ---
     docker_cmd.arg("--cap-add=NET_ADMIN");
@@ -78,9 +76,13 @@ fn main() {
     // --- 2. Privilege Isolation ---
     let uid = Command::new("id").arg("-u").output().expect("Failed to get UID");
     let gid = Command::new("id").arg("-g").output().expect("Failed to get GID");
-    
-    docker_cmd.arg("-e").arg(format!("AGENT_UID={}", String::from_utf8_lossy(&uid.stdout).trim()));
-    docker_cmd.arg("-e").arg(format!("AGENT_GID={}", String::from_utf8_lossy(&gid.stdout).trim()));
+
+    docker_cmd
+        .arg("-e")
+        .arg(format!("AGENT_UID={}", String::from_utf8_lossy(&uid.stdout).trim()));
+    docker_cmd
+        .arg("-e")
+        .arg(format!("AGENT_GID={}", String::from_utf8_lossy(&gid.stdout).trim()));
 
     // --- 1. Filesystem Isolation ---
     let pwd = env::current_dir().expect("Failed to get current directory");
@@ -92,29 +94,36 @@ fn main() {
         println!("[RustyYOLO] Mounting volume: {}", vol);
         docker_cmd.arg("-v").arg(vol);
     }
-    
+
     // Add user-specified env vars
     for env_var in args.envs {
         docker_cmd.arg("-e").arg(env_var);
     }
 
     // Mount persistent auth/history directories
-    let default_auth_home = dirs::config_dir().unwrap_or(PathBuf::from("~/.config")).join("rustyolo");
+    let default_auth_home =
+        dirs::config_dir().unwrap_or(PathBuf::from("~/.config")).join("rustyolo");
     let auth_home_path = args.auth_home.unwrap_or(default_auth_home);
-    
+
     // Ensure the directory exists on the host
     if !auth_home_path.exists() {
         std::fs::create_dir_all(&auth_home_path).expect("Failed to create auth-home directory");
     }
-    
-    let auth_path = auth_home_path.canonicalize()
-        .expect("Failed to get absolute path for --auth-home");
-    
-    let container_auth_path = "/home/agent/.config/rustyolo";
-    println!("[RustyYOLO] Mounting auth home: {} -> {}", auth_path.display(), container_auth_path);
-    docker_cmd.arg("-v").arg(format!("{}:{}", auth_path.display(), container_auth_path));
-    docker_cmd.arg("-e").arg(format!("PERSISTENT_DIRS={}", container_auth_path));
 
+    let auth_path = auth_home_path
+        .canonicalize()
+        .expect("Failed to get absolute path for --auth-home");
+
+    let container_auth_path = "/home/agent/.config/rustyolo";
+    println!(
+        "[RustyYOLO] Mounting auth home: {} -> {}",
+        auth_path.display(),
+        container_auth_path
+    );
+    docker_cmd
+        .arg("-v")
+        .arg(format!("{}:{}", auth_path.display(), container_auth_path));
+    docker_cmd.arg("-e").arg(format!("PERSISTENT_DIRS={}", container_auth_path));
 
     // Add the image
     docker_cmd.arg(&args.image);
