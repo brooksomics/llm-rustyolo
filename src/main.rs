@@ -43,7 +43,7 @@ struct Args {
 
     /// Arguments to pass directly to the agent (e.g., --help or -p "prompt").
     #[arg(last = true)]
-    args: Vec<String>,
+    additional: Vec<String>,
 }
 
 fn main() {
@@ -129,7 +129,7 @@ fn main() {
 
     // Add the agent command
     docker_cmd.arg(&cli.agent); // Always add agent name
-    if cli.args.is_empty() {
+    if cli.additional.is_empty() {
         // If no args are given, assume default "YOLO" mode
         if cli.agent == "claude" {
             docker_cmd.arg("--dangerously-skip-permissions");
@@ -138,7 +138,7 @@ fn main() {
         // e.g., aider, cursor, etc.
     } else {
         // Pass user's explicit args (e.g., "claude --help")
-        docker_cmd.args(cli.args);
+        docker_cmd.args(cli.additional);
     }
 
     // --- Run the Command ---
