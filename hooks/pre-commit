@@ -1,0 +1,32 @@
+#!/bin/bash
+# Pre-commit hook for Rust projects
+# This hook runs rustfmt and clippy before allowing a commit
+
+set -e
+
+echo "Running pre-commit checks..."
+
+# Check if cargo is available
+if ! command -v cargo &> /dev/null; then
+    echo "Error: cargo not found. Please install Rust toolchain."
+    exit 1
+fi
+
+# Run rustfmt to check formatting
+echo "Checking code formatting with rustfmt..."
+if ! cargo fmt --all -- --check; then
+    echo "Error: Code is not formatted properly."
+    echo "Run 'cargo fmt' to fix formatting issues."
+    exit 1
+fi
+
+# Run clippy to check for lints
+echo "Running clippy lints..."
+if ! cargo clippy --all-targets --all-features -- -D warnings; then
+    echo "Error: Clippy found issues."
+    echo "Fix the issues above or run 'cargo clippy --fix' to auto-fix some of them."
+    exit 1
+fi
+
+echo "All pre-commit checks passed!"
+exit 0
