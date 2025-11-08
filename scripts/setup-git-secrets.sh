@@ -54,8 +54,8 @@ git secrets --add '[aA]pi[_-]?[kK]ey.*[=:]\s*["\047]?[a-zA-Z0-9]{20,}["\047]?'
 git secrets --add '[aA]pi[_-]?[tT]oken.*[=:]\s*["\047]?[a-zA-Z0-9]{20,}["\047]?'
 git secrets --add '[aA]ccess[_-]?[tT]oken.*[=:]\s*["\047]?[a-zA-Z0-9]{20,}["\047]?'
 
-# Private keys
-git secrets --add '-----BEGIN\s+(RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY-----'
+# Private keys (match the BEGIN keyword to avoid leading dash issues)
+git secrets --add 'BEGIN\s+(RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY'
 
 # Generic secrets
 git secrets --add '[sS]ecret.*[=:]\s*["\047]?[a-zA-Z0-9]{20,}["\047]?'
