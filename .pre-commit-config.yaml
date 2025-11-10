@@ -29,13 +29,15 @@ repos:
         description: Scan for secrets, API keys, tokens, passwords
 
   # detect-secrets - Yelp's secret detection
+  # Note: We scan without baseline to avoid auto-update loops
+  # Maintain baseline separately with: detect-secrets scan --baseline .secrets.baseline
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
     hooks:
       - id: detect-secrets
         name: Detect Secrets
-        args: ['--baseline', '.secrets.baseline']
-        exclude: package.lock.json
+        args: []
+        exclude: '(package.lock.json|\.secrets\.baseline)'
 
   # Rust-specific checks
   - repo: local
