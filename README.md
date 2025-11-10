@@ -81,12 +81,33 @@ You can pass any command and arguments after the agent name. `rustyolo` is smart
 rustyolo claude --help
 ```
 
+## Keeping Up-to-Date
+
+`rustyolo` includes built-in auto-update functionality:
+
+```bash
+# Check for and install updates (both binary and Docker image)
+rustyolo update
+
+# Update just the binary
+rustyolo update --binary
+
+# Update just the Docker image
+rustyolo update --image
+```
+
+The tool also checks for updates automatically on startup and will notify you if a new version is available.
+
 ## All CLI Options
 
 ```
 A secure, firewalled Docker wrapper for AI agents.
 
 Usage: rustyolo [OPTIONS] [AGENT] [AGENT_ARGS]...
+       rustyolo update [OPTIONS]
+
+Subcommands:
+  update    Update rustyolo components (binary and/or Docker image)
 
 Arguments:
   [AGENT]
@@ -118,6 +139,9 @@ Options:
   --image <IMAGE>
           The Docker image to use
           [default: llm-rustyolo:latest]
+
+  --skip-version-check
+          Skip automatic version check on startup
 
   -h, --help
           Print help

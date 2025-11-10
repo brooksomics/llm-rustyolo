@@ -63,6 +63,77 @@ This will:
 - Create a non-root `agent` user
 - Copy the entrypoint script
 
+## Updating
+
+`rustyolo` includes built-in auto-update functionality to keep both the CLI binary and Docker image up-to-date.
+
+### Automatic Update Checks
+
+By default, `rustyolo` checks for updates on startup and displays a warning if a new version is available:
+
+```bash
+[RustyYOLO] ⚠️  New version 0.2.0 available! (current: 0.1.0)
+[RustyYOLO]    Run 'rustyolo update' to upgrade.
+```
+
+To skip this check (e.g., for scripts or CI), use the `--skip-version-check` flag:
+
+```bash
+rustyolo --skip-version-check claude
+```
+
+### Manual Updates
+
+#### Update Everything (Recommended)
+
+Update both the binary and Docker image:
+
+```bash
+rustyolo update
+```
+
+This will:
+1. Check GitHub releases for the latest binary version
+2. Download and install the new binary
+3. Pull the latest Docker image
+
+#### Update Binary Only
+
+```bash
+rustyolo update --binary
+```
+
+#### Update Docker Image Only
+
+```bash
+rustyolo update --image
+```
+
+#### Skip Confirmation
+
+Use the `--yes` flag to skip the update confirmation prompt:
+
+```bash
+rustyolo update --yes
+```
+
+### Manual Update Process (Without Auto-Update)
+
+If you prefer to update manually or if auto-update fails:
+
+**1. Update the Rust CLI Binary:**
+```bash
+cd llm-rustyolo
+git pull
+cargo build --release
+cp target/release/rustyolo /usr/local/bin/
+```
+
+**2. Update the Docker Image:**
+```bash
+docker build -t llm-rustyolo:latest .
+```
+
 ## Usage
 
 ### Basic Usage: Running Claude with Network Access
@@ -130,10 +201,16 @@ rustyolo -e MY_VAR=value -e ANOTHER=var claude
 
 ## CLI Reference
 
+### Main Command
+
 ```
 A secure, firewalled Docker wrapper for AI agents.
 
 Usage: rustyolo [OPTIONS] [AGENT] [AGENT_ARGS]...
+       rustyolo update [OPTIONS]
+
+Subcommands:
+  update    Update rustyolo components (binary and/or Docker image)
 
 Arguments:
   [AGENT]
@@ -166,11 +243,28 @@ Options:
           The Docker image to use
           [default: llm-rustyolo:latest]
 
+  --skip-version-check
+          Skip version check on startup
+
   -h, --help
           Print help
 
   -V, --version
           Print version
+```
+
+### Update Subcommand
+
+```
+Update rustyolo components (binary and/or Docker image)
+
+Usage: rustyolo update [OPTIONS]
+
+Options:
+  --binary    Only update the binary
+  --image     Only update the Docker image
+  --yes       Skip version check confirmation
+  -h, --help  Print help
 ```
 
 ## How It Works
@@ -310,6 +404,23 @@ docker_cmd.arg("--cpus").arg("2");
 ## Contributing
 
 Contributions welcome! Please open an issue or PR.
+
+### Publishing Releases
+
+To enable auto-update functionality, new versions should be published as GitHub releases with precompiled binaries:
+
+1. **Update version** in `Cargo.toml`
+2. **Build release binaries** for supported platforms (Linux, macOS, Windows)
+3. **Create a GitHub release** with tag format `vX.Y.Z` (e.g., `v0.2.0`)
+4. **Attach binaries** to the release with naming convention: `rustyolo-{target}.tar.gz`
+
+Example targets:
+- `x86_64-unknown-linux-gnu`
+- `x86_64-apple-darwin`
+- `aarch64-apple-darwin`
+- `x86_64-pc-windows-msvc`
+
+The `self_update` crate will automatically detect and download the appropriate binary for the user's platform.
 
 ## Acknowledgments
 
