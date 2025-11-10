@@ -130,6 +130,17 @@ Options:
 
 - [INSTALL.md](./INSTALL.md) - Detailed installation instructions
 - [CLAUDE.md](./CLAUDE.md) - Complete documentation on how it works, security considerations, and advanced usage
+- [SECURITY.md](./SECURITY.md) - Secret scanning and security protection setup
+
+## Security
+
+This repository implements multiple layers of secret detection to prevent accidentally committing sensitive information:
+
+- **Pre-commit Hooks** - Gitleaks, detect-secrets, and more run before each commit
+- **GitHub Actions** - Automated secret scanning on every push and PR
+- **git-secrets** - Additional local protection with custom patterns
+
+See [SECURITY.md](./SECURITY.md) for complete setup instructions and best practices.
 
 ## License
 

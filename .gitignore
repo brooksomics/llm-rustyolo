@@ -15,3 +15,11 @@ Cargo.lock
 # Environment
 .env
 .env.local
+.env.*
+
+# Secret scanning
+.git-secrets-scan
+.gitleaks-report.json
+.gitleaks-report.sarif
+.secrets.scan
+*.secret

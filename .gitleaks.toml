@@ -1,0 +1,39 @@
+# Gitleaks configuration for llm-rustyolo
+# This file defines custom rules and exceptions for secret scanning
+
+title = "Gitleaks Configuration for llm-rustyolo"
+
+[extend]
+# Use the default gitleaks rules as a baseline
+useDefault = true
+
+[allowlist]
+description = "Allowlisted files and patterns"
+
+# Allow test files with dummy/example secrets and documentation files
+paths = [
+    '''tests/.*''',
+    '''examples/.*''',
+    '''\.secrets\.baseline''',
+    '''SECURITY\.md''',
+]
+
+# Allow common false positives
+regexes = [
+    '''example\.com''',
+    '''localhost''',
+    '''127\.0\.0\.1''',
+    '''0\.0\.0\.0''',
+]
+
+# Specific patterns to ignore (add your false positives here)
+[allowlist.commits]
+# Example: Skip specific commits if needed
+# commits = [ "abc123def456" ]  # pragma: allowlist secret
+
+# Custom rules (if needed)
+# [[rules]]
+# id = "custom-rule-1"
+# description = "Custom secret pattern"
+# regex = '''your-regex-here'''
+# tags = ["custom", "secret"]

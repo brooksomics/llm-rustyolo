@@ -1,0 +1,57 @@
+# Pre-commit hooks for secret detection and security
+# Install pre-commit: pip install pre-commit
+# Set up hooks: pre-commit install
+
+repos:
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: detect-private-key
+        name: Detect Private Keys
+        description: Prevents committing private SSH/GPG keys
+      - id: detect-aws-credentials
+        name: Detect AWS Credentials
+        args: ['--allow-missing-credentials']
+
+  # Gitleaks - comprehensive secret scanning
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+        name: Gitleaks Secret Scanner
+        description: Scan for secrets, API keys, tokens, passwords
+
+  # detect-secrets - Yelp's secret detection
+  # Note: We scan without baseline to avoid auto-update loops
+  # Maintain baseline separately with: detect-secrets scan --baseline .secrets.baseline
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect Secrets
+        args: []
+        exclude: '(package.lock.json|\.secrets\.baseline|SECURITY\.md|\.gitleaks\.toml)'
+
+  # Rust-specific checks
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: Cargo Format
+        entry: cargo fmt --all -- --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: Cargo Clippy
+        entry: cargo clippy --all-targets --all-features -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
