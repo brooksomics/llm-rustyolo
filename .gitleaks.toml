@@ -27,7 +27,7 @@ regexes = [
 # Specific patterns to ignore (add your false positives here)
 [allowlist.commits]
 # Example: Skip specific commits if needed
-# commits = [ "abc123def456" ]
+# commits = [ "abc123def456" ]  # pragma: allowlist secret
 
 # Custom rules (if needed)
 # [[rules]]

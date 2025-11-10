@@ -222,7 +222,7 @@ git secrets --add --allowed 'your-pattern'
 
 ### Option 4: Inline Comment (Gitleaks)
 ```python
-secret = "not-really-a-secret"  # gitleaks:allow
+secret = "not-really-a-secret"  # gitleaks:allow pragma: allowlist secret
 ```
 
 ## Emergency: Committed a Secret
@@ -268,8 +268,8 @@ Enable these in your repository settings:
 
 ### Test Pre-commit
 ```bash
-# Create a test file with a fake secret
-echo "aws_access_key_id=AKIAIOSFODNN7EXAMPLE" > test-secret.txt
+# Create a test file with a fake secret (pragma: allowlist secret)
+echo "aws_access_key_id=AKIAIOSFODNN7EXAMPLE" > test-secret.txt  # pragma: allowlist secret
 git add test-secret.txt
 git commit -m "test"  # Should be blocked!
 rm test-secret.txt
