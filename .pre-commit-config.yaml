@@ -37,7 +37,7 @@ repos:
       - id: detect-secrets
         name: Detect Secrets
         args: []
-        exclude: '(package.lock.json|\.secrets\.baseline)'
+        exclude: '(package.lock.json|\.secrets\.baseline|SECURITY\.md|\.gitleaks\.toml)'
 
   # Rust-specific checks
   - repo: local
