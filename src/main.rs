@@ -68,7 +68,7 @@ struct RunArgs {
     auth_home: Option<PathBuf>,
 
     /// The Docker image to use.
-    #[arg(long, default_value = "llm-rustyolo:latest")]
+    #[arg(long, default_value = "ghcr.io/brooksomics/llm-rustyolo:latest")]
     image: String,
 
     /// Arguments to pass directly to the agent (e.g., --help or -p "prompt").
@@ -95,7 +95,7 @@ fn main() {
                 envs: Vec::new(),
                 allow_domains: None,
                 auth_home: None,
-                image: "llm-rustyolo:latest".to_string(),
+                image: "ghcr.io/brooksomics/llm-rustyolo:latest".to_string(),
                 additional: Vec::new(),
                 skip_version_check: false,
             });
@@ -109,29 +109,50 @@ fn main() {
 }
 
 fn handle_update(binary_only: bool, image_only: bool, yes: bool) {
+    let install_method = update::detect_installation_method();
     let update_binary = binary_only || !image_only;
     let update_image = image_only || !binary_only;
 
     if update_binary {
-        println!("[RustyYOLO] Updating binary...");
-        match update::update_binary(yes) {
-            Ok(status) => {
-                if status.updated() {
-                    println!(
-                        "[RustyYOLO] Binary updated successfully to version {}",
-                        status.version()
-                    );
-                    println!("[RustyYOLO] Please restart rustyolo to use the new version.");
-                } else {
-                    println!(
-                        "[RustyYOLO] Binary is already up to date (version {}).",
-                        status.version()
-                    );
-                }
-            }
-            Err(e) => {
-                eprintln!("[RustyYOLO] Failed to update binary: {e}");
+        // For Homebrew installations, skip binary update gracefully
+        if install_method == update::InstallMethod::Homebrew {
+            if binary_only {
+                // User explicitly requested --binary, show error
+                eprintln!("[RustyYOLO] ❌ rustyolo was installed via Homebrew.");
+                eprintln!("[RustyYOLO] To update the CLI binary, run:");
+                eprintln!("[RustyYOLO]   brew upgrade rustyolo");
+                eprintln!();
+                eprintln!("[RustyYOLO] To update the Docker image, run:");
+                eprintln!("[RustyYOLO]   rustyolo update --image");
                 std::process::exit(1);
+            } else {
+                // User ran 'rustyolo update', skip binary with a reminder
+                println!("[RustyYOLO] ℹ️  Skipping binary update (managed by Homebrew).");
+                println!("[RustyYOLO] To update the CLI binary, run: brew upgrade rustyolo");
+                println!();
+            }
+        } else {
+            // Manual installation - proceed with binary update
+            println!("[RustyYOLO] Updating binary...");
+            match update::update_binary(yes) {
+                Ok(status) => {
+                    if status.updated() {
+                        println!(
+                            "[RustyYOLO] Binary updated successfully to version {}",
+                            status.version()
+                        );
+                        println!("[RustyYOLO] Please restart rustyolo to use the new version.");
+                    } else {
+                        println!(
+                            "[RustyYOLO] Binary is already up to date (version {}).",
+                            status.version()
+                        );
+                    }
+                }
+                Err(e) => {
+                    eprintln!("[RustyYOLO] Failed to update binary: {e}");
+                    std::process::exit(1);
+                }
             }
         }
     }

@@ -36,11 +36,32 @@ The key innovation here is combining flexible auth/volume mounting with strict n
 
 ## Setup
 
-### 1. Build the Rust CLI
+### Option 1: Homebrew Installation (Recommended for macOS/Linux)
+
+```bash
+# Install via Homebrew tap
+brew tap brooksomics/rustyolo
+brew install rustyolo
+
+# Pull the Docker image
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+**Optional: Build Docker Image Locally**
+
+If you need to customize the image, you can build it from source:
+
+```bash
+git clone https://github.com/brooksomics/llm-rustyolo.git
+cd llm-rustyolo
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
+```
+
+### Option 2: Manual Build
 
 ```bash
 # Clone the repo
-git clone <your-repo-url>
+git clone https://github.com/brooksomics/llm-rustyolo.git
 cd llm-rustyolo
 
 # Build the release binary
@@ -48,24 +69,27 @@ cargo build --release
 
 # Copy to your PATH (optional but recommended)
 cp target/release/rustyolo /usr/local/bin/
+
+# Pull the Docker image
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
 ```
 
-### 2. Build the Docker Image
+**Optional: Build Docker Image Locally**
+
+If you need to customize the image:
 
 ```bash
-docker build -t llm-rustyolo:latest .
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
-This will:
-- Start from the official Node.js image
-- Install iptables, dnsutils, and gosu
-- Install Claude Code (and other agents as they become available)
-- Create a non-root `agent` user
-- Copy the entrypoint script
+The Docker image includes:
+- Official Node.js base image
+- iptables, dnsutils, and gosu
+- Claude Code (and other agents as they become available)
+- A non-root `agent` user
+- The security entrypoint script
 
 ## Updating
-
-`rustyolo` includes built-in auto-update functionality for the CLI binary. The Docker image is self-hosted and requires manual rebuilding.
 
 ### Automatic Update Checks
 
@@ -82,10 +106,38 @@ To skip this check (e.g., for scripts or CI), use the `--skip-version-check` fla
 rustyolo --skip-version-check claude
 ```
 
-### Updating the CLI Binary
+### For Homebrew Users
 
-The `rustyolo` binary can be updated automatically from GitHub releases:
+If you installed via Homebrew:
 
+**Update Docker image (recommended):**
+```bash
+rustyolo update
+```
+This updates the Docker image and shows a reminder about updating the CLI via Homebrew.
+
+**Update just the Docker image:**
+```bash
+rustyolo update --image
+```
+
+Or manually:
+```bash
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+**Update the CLI binary:**
+```bash
+brew upgrade rustyolo
+```
+
+**Note:** The `rustyolo update` command only updates the Docker image for Homebrew installations, as Homebrew manages the CLI binary separately. You'll see a reminder to run `brew upgrade rustyolo` for the CLI.
+
+### For Manual Installations
+
+If you built from source:
+
+**Update the CLI Binary:**
 ```bash
 rustyolo update --binary
 ```
@@ -97,19 +149,17 @@ This will:
 
 Or use `rustyolo update --yes` to skip the confirmation prompt.
 
-### Updating the Docker Image
-
-**Important:** The Docker image is self-hosted and not published to a registry. When a new version is released, you must rebuild the image locally:
-
+**Update the Docker Image:**
 ```bash
-cd /path/to/llm-rustyolo
-git pull
-docker build -t llm-rustyolo:latest .
+rustyolo update --image
 ```
 
-**Note:** The `rustyolo update --image` command will not work for self-hosted setups. Always rebuild the image manually after updating the repository.
+Or manually:
+```bash
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
 
-### Manual Update Process (Without Auto-Update)
+### Manual Update Process (Alternative)
 
 If you prefer to update manually or if auto-update fails:
 
@@ -123,7 +173,12 @@ cp target/release/rustyolo /usr/local/bin/
 
 **2. Update the Docker Image:**
 ```bash
-docker build -t llm-rustyolo:latest .
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+Or build locally:
+```bash
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 ## Usage

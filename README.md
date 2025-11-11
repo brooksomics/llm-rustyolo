@@ -27,18 +27,44 @@ This approach combines the flexible auth and volume mounting from deva.sh with t
 ## Quick Setup
 
 ### Prerequisites
-- Rust (install via https://rustup.rs)
-- Docker (Docker Desktop on macOS, or docker.io on Linux)
+- **Homebrew** (for macOS/Linux users) - Install from https://brew.sh
+- **Docker** (Docker Desktop on macOS, or docker.io on Linux)
 
-### Build
+### Installation
+
+#### Option 1: Homebrew (Recommended for macOS/Linux)
 
 ```bash
-# 1. Build the Rust CLI
+# Install via Homebrew tap
+brew tap brooksomics/rustyolo
+brew install rustyolo
+
+# Pull the Docker image
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+Or build locally if you need to customize:
+```bash
+git clone https://github.com/brooksomics/llm-rustyolo.git
+cd llm-rustyolo
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
+```
+
+#### Option 2: Manual Build (For customization or other platforms)
+
+```bash
+# 1. Install Rust (if not already installed)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# 2. Build the Rust CLI
 cargo build --release
 sudo cp target/release/rustyolo /usr/local/bin/
 
-# 2. Build the Docker image
-docker build -t llm-rustyolo:latest .
+# 3. Pull the Docker image
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+
+# Or build locally if you need to customize
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 For detailed installation instructions, see [INSTALL.md](./INSTALL.md).
@@ -83,20 +109,39 @@ rustyolo claude --help
 
 ## Keeping Up-to-Date
 
-`rustyolo` includes built-in auto-update functionality:
+### Homebrew Installation
+
+If you installed via Homebrew, you have multiple update options:
 
 ```bash
-# Check for and install updates (both binary and Docker image)
+# Update Docker image only (shows reminder about CLI)
 rustyolo update
-
-# Update just the binary
-rustyolo update --binary
 
 # Update just the Docker image
 rustyolo update --image
+
+# Update the CLI binary (must use Homebrew)
+brew upgrade rustyolo
 ```
 
-The tool also checks for updates automatically on startup and will notify you if a new version is available.
+**Note:** The `rustyolo update` command only updates the Docker image for Homebrew installations, as Homebrew manages the CLI binary separately. You'll see a reminder to run `brew upgrade rustyolo` for the CLI.
+
+### Manual Installation
+
+If you built from source, use the built-in update commands:
+
+```bash
+# Update the binary
+rustyolo update --binary
+
+# Update the Docker image
+rustyolo update --image
+
+# Update both
+rustyolo update
+```
+
+The tool automatically checks for updates on startup and notifies you when a new version is available.
 
 ## All CLI Options
 

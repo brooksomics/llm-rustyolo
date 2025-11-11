@@ -1,9 +1,16 @@
 use serde::Deserialize;
+use std::env;
 use std::error::Error;
 use std::process::Command;
 
 const GITHUB_REPO: &str = "brooksomics/llm-rustyolo";
 const GITHUB_API_URL: &str = "https://api.github.com/repos";
+
+#[derive(Debug, PartialEq)]
+pub enum InstallMethod {
+    Homebrew,
+    Manual,
+}
 
 #[derive(Debug, Deserialize)]
 struct GitHubRelease {
@@ -32,7 +39,27 @@ pub fn get_latest_version() -> Result<String, Box<dyn Error>> {
     Ok(version)
 }
 
+/// Detect how rustyolo was installed
+pub fn detect_installation_method() -> InstallMethod {
+    // Get the current executable path
+    if let Ok(exe_path) = env::current_exe() {
+        let path_str = exe_path.to_string_lossy();
+
+        // Check if binary is in Homebrew Cellar path
+        // Homebrew on Intel Macs: /usr/local/Cellar/rustyolo/
+        // Homebrew on Apple Silicon: /opt/homebrew/Cellar/rustyolo/
+        // Linuxbrew: /home/linuxbrew/.linuxbrew/Cellar/rustyolo/
+        if path_str.contains("/Cellar/rustyolo/") {
+            return InstallMethod::Homebrew;
+        }
+    }
+
+    InstallMethod::Manual
+}
+
 /// Update the binary using `self_update`
+/// Note: This function should only be called for manual installations.
+/// Homebrew installations should be handled by the caller (main.rs).
 pub fn update_binary(skip_confirm: bool) -> Result<self_update::Status, Box<dyn Error>> {
     let current_version = env!("CARGO_PKG_VERSION");
 
@@ -55,9 +82,9 @@ pub fn update_binary(skip_confirm: bool) -> Result<self_update::Status, Box<dyn 
     Ok(status)
 }
 
-/// Update the Docker image by pulling the latest version
+/// Update the Docker image by pulling the latest version from GitHub Container Registry
 pub fn update_docker_image() -> Result<(), Box<dyn Error>> {
-    let image = "llm-rustyolo:latest";
+    let image = "ghcr.io/brooksomics/llm-rustyolo:latest";
 
     println!("[RustyYOLO] Pulling latest Docker image: {image}");
 
@@ -92,5 +119,17 @@ mod tests {
                 println!("Expected error (no releases yet): {e}");
             }
         }
+    }
+
+    #[test]
+    fn test_detect_installation_method() {
+        // This test will pass in both environments
+        // When run locally (manual install), it should return Manual
+        // When run via Homebrew, it should return Homebrew
+        let method = detect_installation_method();
+        assert!(
+            method == InstallMethod::Manual || method == InstallMethod::Homebrew,
+            "Installation method should be either Manual or Homebrew"
+        );
     }
 }

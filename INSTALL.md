@@ -1,10 +1,87 @@
 # Installation Guide
 
-This guide will walk you through installing all the prerequisites and building llm-rustyolo.
+This guide provides detailed installation instructions for llm-rustyolo using either Homebrew (recommended for macOS/Linux) or manual build.
 
-## Prerequisites
+## Installation Options
 
-### 1. Install Rust
+### Option 1: Homebrew Installation (Recommended for macOS/Linux)
+
+This is the easiest method for macOS and Linux users.
+
+#### Prerequisites
+
+1. **Install Homebrew** (if not already installed):
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+
+2. **Install Docker**:
+   ```bash
+   # macOS
+   brew install --cask docker
+
+   # Linux (or download from https://www.docker.com/products/docker-desktop)
+   curl -fsSL https://get.docker.com -o get-docker.sh
+   sudo sh get-docker.sh
+   ```
+
+#### Install rustyolo
+
+```bash
+# Add the rustyolo tap
+brew tap brooksomics/rustyolo
+
+# Install rustyolo
+brew install rustyolo
+
+# Verify installation
+rustyolo --version
+```
+
+#### Get the Docker Image
+
+```bash
+# Pull the pre-built image from GitHub Container Registry
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+**Optional: Build Locally**
+
+If you need to customize the image:
+
+```bash
+git clone https://github.com/brooksomics/llm-rustyolo.git
+cd llm-rustyolo
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
+```
+
+#### Updating
+
+```bash
+# Update Docker image (shows reminder about CLI)
+rustyolo update
+
+# Update just the Docker image
+rustyolo update --image
+
+# Or pull manually
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+
+# Update the CLI binary
+brew upgrade rustyolo
+```
+
+**Note:** The `rustyolo update` command updates the Docker image and reminds you to run `brew upgrade rustyolo` for the CLI binary.
+
+---
+
+### Option 2: Manual Build
+
+Use this method if you want to customize the code or if Homebrew is not available.
+
+#### Prerequisites
+
+#### 1. Install Rust
 
 If you don't have Rust installed, install it using rustup:
 
@@ -25,7 +102,7 @@ rustc --version
 cargo --version
 ```
 
-### 2. Install Docker
+#### 2. Install Docker
 
 #### macOS
 
@@ -55,16 +132,16 @@ docker --version
 docker ps
 ```
 
-## Building llm-rustyolo
+#### Building llm-rustyolo
 
-### 1. Clone the Repository
+##### 1. Clone the Repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/brooksomics/llm-rustyolo.git
 cd llm-rustyolo
 ```
 
-### 2. Build the Rust CLI
+##### 2. Build the Rust CLI
 
 ```bash
 # Build in release mode (optimized)
@@ -73,7 +150,7 @@ cargo build --release
 # The binary will be at: target/release/rustyolo
 ```
 
-### 3. Install the Binary (Optional but Recommended)
+##### 3. Install the Binary (Optional but Recommended)
 
 ```bash
 # macOS/Linux
@@ -85,10 +162,19 @@ cp target/release/rustyolo ~/bin/
 # Make sure ~/bin is in your PATH
 ```
 
-### 4. Build the Docker Image
+##### 4. Get the Docker Image
 
 ```bash
-docker build -t llm-rustyolo:latest .
+# Pull the pre-built image
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+**Optional: Build Locally**
+
+If you need to customize the image:
+
+```bash
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 This will take a few minutes as it downloads the Node.js base image and installs Claude Code.
@@ -109,7 +195,7 @@ You should see the help message.
 docker images | grep llm-rustyolo
 ```
 
-You should see the `llm-rustyolo:latest` image.
+You should see the `ghcr.io/brooksomics/llm-rustyolo` image.
 
 ### Run a Basic Test
 
@@ -149,9 +235,14 @@ newgrp docker
 
 ### Docker build fails with "npm install" errors
 
-This could be a network issue. Try:
+Try pulling the pre-built image instead:
 ```bash
-docker build --no-cache -t llm-rustyolo:latest .
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+If building locally, try:
+```bash
+docker build --no-cache -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 ## Next Steps
