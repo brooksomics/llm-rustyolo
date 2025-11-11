@@ -65,7 +65,7 @@ This will:
 
 ## Updating
 
-`rustyolo` includes built-in auto-update functionality to keep both the CLI binary and Docker image up-to-date.
+`rustyolo` includes built-in auto-update functionality for the CLI binary. The Docker image is self-hosted and requires manual rebuilding.
 
 ### Automatic Update Checks
 
@@ -82,40 +82,32 @@ To skip this check (e.g., for scripts or CI), use the `--skip-version-check` fla
 rustyolo --skip-version-check claude
 ```
 
-### Manual Updates
+### Updating the CLI Binary
 
-#### Update Everything (Recommended)
-
-Update both the binary and Docker image:
-
-```bash
-rustyolo update
-```
-
-This will:
-1. Check GitHub releases for the latest binary version
-2. Download and install the new binary
-3. Pull the latest Docker image
-
-#### Update Binary Only
+The `rustyolo` binary can be updated automatically from GitHub releases:
 
 ```bash
 rustyolo update --binary
 ```
 
-#### Update Docker Image Only
+This will:
+1. Check GitHub releases for the latest binary version
+2. Download and install the new binary for your platform
+3. Replace the existing binary at `/usr/local/bin/rustyolo`
+
+Or use `rustyolo update --yes` to skip the confirmation prompt.
+
+### Updating the Docker Image
+
+**Important:** The Docker image is self-hosted and not published to a registry. When a new version is released, you must rebuild the image locally:
 
 ```bash
-rustyolo update --image
+cd /path/to/llm-rustyolo
+git pull
+docker build -t llm-rustyolo:latest .
 ```
 
-#### Skip Confirmation
-
-Use the `--yes` flag to skip the update confirmation prompt:
-
-```bash
-rustyolo update --yes
-```
+**Note:** The `rustyolo update --image` command will not work for self-hosted setups. Always rebuild the image manually after updating the repository.
 
 ### Manual Update Process (Without Auto-Update)
 
@@ -407,20 +399,42 @@ Contributions welcome! Please open an issue or PR.
 
 ### Publishing Releases
 
-To enable auto-update functionality, new versions should be published as GitHub releases with precompiled binaries:
+To enable auto-update functionality for the CLI binary, new versions should be published as GitHub releases with precompiled binaries:
 
 1. **Update version** in `Cargo.toml`
-2. **Build release binaries** for supported platforms (Linux, macOS, Windows)
-3. **Create a GitHub release** with tag format `vX.Y.Z` (e.g., `v0.2.0`)
-4. **Attach binaries** to the release with naming convention: `rustyolo-{target}.tar.gz`
+2. **Commit the version bump** to `main` branch
+3. **Build release binary** for your platform (or multiple platforms if desired)
+4. **Package the binary** as a tarball:
+   ```bash
+   tar -czf rustyolo-{target}.tar.gz -C target/release rustyolo
+   ```
+5. **Create a GitHub release** with tag format `vX.Y.Z` (e.g., `v0.1.1`)
+6. **Upload the tarball** to the release
 
-Example targets:
-- `x86_64-unknown-linux-gnu`
-- `x86_64-apple-darwin`
-- `aarch64-apple-darwin`
-- `x86_64-pc-windows-msvc`
+Example commands for macOS (Apple Silicon):
+```bash
+# Build the binary
+cargo build --release
+
+# Package it
+tar -czf rustyolo-aarch64-apple-darwin.tar.gz -C target/release rustyolo
+
+# Create the release and upload
+gh release create v0.1.1 \
+  --title "v0.1.1 - Bug Fix Title" \
+  --notes "Description of changes" \
+  rustyolo-aarch64-apple-darwin.tar.gz
+```
+
+Example target names:
+- `x86_64-unknown-linux-gnu` (Linux Intel/AMD)
+- `x86_64-apple-darwin` (macOS Intel)
+- `aarch64-apple-darwin` (macOS Apple Silicon)
+- `x86_64-pc-windows-msvc` (Windows)
 
 The `self_update` crate will automatically detect and download the appropriate binary for the user's platform.
+
+**Note:** The Docker image is self-hosted. Users must rebuild it locally using `docker build -t llm-rustyolo:latest .` after pulling updates from the repository.
 
 ## Acknowledgments
 
