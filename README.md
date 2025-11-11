@@ -120,8 +120,9 @@ brew upgrade rustyolo
 # Update the Docker image
 rustyolo update --image
 
-# Note: rustyolo update --binary is disabled for Homebrew installations
-# Always use 'brew upgrade rustyolo' instead
+# Note: Unlike manual installations, you cannot update both with a single
+# 'rustyolo update' command. Homebrew manages the CLI binary separately,
+# so you need two separate commands (one for CLI, one for Docker image).
 ```
 
 ### Manual Installation

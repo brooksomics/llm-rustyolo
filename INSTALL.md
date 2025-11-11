@@ -66,6 +66,9 @@ docker pull ghcr.io/brooksomics/llm-rustyolo:latest
 
 # Or use the update command
 rustyolo update --image
+
+# Note: Unlike manual installations, you cannot update both with a single
+# 'rustyolo update' command. Homebrew manages the CLI separately.
 ```
 
 ---

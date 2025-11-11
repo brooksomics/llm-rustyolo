@@ -125,7 +125,7 @@ Or manually:
 docker pull ghcr.io/brooksomics/llm-rustyolo:latest
 ```
 
-**Note:** The `rustyolo update --binary` command is disabled for Homebrew installations. Always use `brew upgrade rustyolo` to update the CLI binary.
+**Note:** Unlike manual installations, you cannot update both components with a single `rustyolo update` command. Homebrew manages the CLI binary separately, so you need two separate commands (one for CLI via Homebrew, one for Docker image via rustyolo).
 
 ### For Manual Installations
 
