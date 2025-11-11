@@ -95,9 +95,9 @@ pub fn update_binary(skip_confirm: bool) -> Result<self_update::Status, Box<dyn 
     }
 }
 
-/// Update the Docker image by pulling the latest version
+/// Update the Docker image by pulling the latest version from GitHub Container Registry
 pub fn update_docker_image() -> Result<(), Box<dyn Error>> {
-    let image = "llm-rustyolo:latest";
+    let image = "ghcr.io/brooksomics/llm-rustyolo:latest";
 
     println!("[RustyYOLO] Pulling latest Docker image: {image}");
 

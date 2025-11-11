@@ -38,15 +38,21 @@ brew install rustyolo
 rustyolo --version
 ```
 
-#### Build the Docker Image
+#### Get the Docker Image
 
 ```bash
-# Clone the repository to get the Dockerfile
+# Pull the pre-built image from GitHub Container Registry
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+**Optional: Build Locally**
+
+If you need to customize the image:
+
+```bash
 git clone https://github.com/brooksomics/llm-rustyolo.git
 cd llm-rustyolo
-
-# Build the Docker image
-docker build -t llm-rustyolo:latest .
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 #### Updating
@@ -56,9 +62,10 @@ docker build -t llm-rustyolo:latest .
 brew upgrade rustyolo
 
 # Update the Docker image
-cd /path/to/llm-rustyolo
-git pull
-docker build -t llm-rustyolo:latest .
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+
+# Or use the update command
+rustyolo update --image
 ```
 
 ---
@@ -150,10 +157,19 @@ cp target/release/rustyolo ~/bin/
 # Make sure ~/bin is in your PATH
 ```
 
-##### 4. Build the Docker Image
+##### 4. Get the Docker Image
 
 ```bash
-docker build -t llm-rustyolo:latest .
+# Pull the pre-built image
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+**Optional: Build Locally**
+
+If you need to customize the image:
+
+```bash
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 This will take a few minutes as it downloads the Node.js base image and installs Claude Code.
@@ -174,7 +190,7 @@ You should see the help message.
 docker images | grep llm-rustyolo
 ```
 
-You should see the `llm-rustyolo:latest` image.
+You should see the `ghcr.io/brooksomics/llm-rustyolo` image.
 
 ### Run a Basic Test
 
@@ -214,9 +230,14 @@ newgrp docker
 
 ### Docker build fails with "npm install" errors
 
-This could be a network issue. Try:
+Try pulling the pre-built image instead:
 ```bash
-docker build --no-cache -t llm-rustyolo:latest .
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+If building locally, try:
+```bash
+docker build --no-cache -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 ## Next Steps

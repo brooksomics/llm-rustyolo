@@ -39,8 +39,15 @@ This approach combines the flexible auth and volume mounting from deva.sh with t
 brew tap brooksomics/rustyolo
 brew install rustyolo
 
-# Build the Docker image (first time only)
-docker build -t llm-rustyolo:latest .
+# Pull the Docker image
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+```
+
+Or build locally if you need to customize:
+```bash
+git clone https://github.com/brooksomics/llm-rustyolo.git
+cd llm-rustyolo
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 #### Option 2: Manual Build (For customization or other platforms)
@@ -53,8 +60,11 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo build --release
 sudo cp target/release/rustyolo /usr/local/bin/
 
-# 3. Build the Docker image
-docker build -t llm-rustyolo:latest .
+# 3. Pull the Docker image
+docker pull ghcr.io/brooksomics/llm-rustyolo:latest
+
+# Or build locally if you need to customize
+docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 For detailed installation instructions, see [INSTALL.md](./INSTALL.md).

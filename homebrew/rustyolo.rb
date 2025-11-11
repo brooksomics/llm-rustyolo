@@ -38,10 +38,7 @@ class Rustyolo < Formula
 
       To get started:
         1. Ensure Docker is running
-        2. Build the Docker image (first time only):
-           cd #{opt_prefix} && docker build -t llm-rustyolo:latest .
-
-      Or pull from a registry (if published):
+        2. Pull the Docker image:
            docker pull ghcr.io/brooksomics/llm-rustyolo:latest
 
       Usage:
@@ -53,6 +50,7 @@ class Rustyolo < Formula
 
       Update the Docker image:
         rustyolo update --image
+        # or: docker pull ghcr.io/brooksomics/llm-rustyolo:latest
     EOS
   end
 

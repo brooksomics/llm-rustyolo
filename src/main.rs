@@ -68,7 +68,7 @@ struct RunArgs {
     auth_home: Option<PathBuf>,
 
     /// The Docker image to use.
-    #[arg(long, default_value = "llm-rustyolo:latest")]
+    #[arg(long, default_value = "ghcr.io/brooksomics/llm-rustyolo:latest")]
     image: String,
 
     /// Arguments to pass directly to the agent (e.g., --help or -p "prompt").
@@ -95,7 +95,7 @@ fn main() {
                 envs: Vec::new(),
                 allow_domains: None,
                 auth_home: None,
-                image: "llm-rustyolo:latest".to_string(),
+                image: "ghcr.io/brooksomics/llm-rustyolo:latest".to_string(),
                 additional: Vec::new(),
                 skip_version_check: false,
             });
