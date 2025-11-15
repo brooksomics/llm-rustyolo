@@ -7,10 +7,11 @@ mod update;
 
 /// A secure, firewalled Docker wrapper for AI agents.
 ///
-/// This tool builds a 'docker run' command to enforce the "Lethal Trifecta" of security:
+/// This tool builds a 'docker run' command to enforce four layers of security:
 /// 1. Filesystem Isolation (via read-only volume mounts)
 /// 2. Privilege Isolation (by running as a non-root user)
 /// 3. Network Isolation (by building an iptables firewall inside the container)
+/// 4. Syscall Isolation (via seccomp to block dangerous system calls)
 #[derive(Parser, Debug)]
 #[command(name = "rustyolo", version, about, long_about = None)]
 #[command(args_conflicts_with_subcommands = true)]
@@ -274,11 +275,13 @@ fn run_agent(args: RunArgs) {
 
     // Prepare system prompt injection
     let default_sandbox_message = "You are operating within a sandboxed Docker environment with restricted access. \
-        The sandbox enforces three layers of security: (1) Filesystem isolation - you can only access the mounted \
+        The sandbox enforces four layers of security: (1) Filesystem isolation - you can only access the mounted \
         project directory and explicitly mounted volumes; (2) Privilege isolation - you are running as a non-root \
         user with limited permissions; (3) Network isolation - outbound traffic is blocked except for DNS and \
-        explicitly whitelisted domains. If you need additional permissions, filesystem access, or network access \
-        to complete a task, please ask the operator to adjust the sandbox configuration.";
+        explicitly whitelisted domains; (4) Syscall isolation - dangerous system calls are blocked via seccomp \
+        (e.g., kernel module loading, process debugging, system reboots). If you need additional permissions, \
+        filesystem access, or network access to complete a task, please ask the operator to adjust the sandbox \
+        configuration.";
 
     let inject_message = match &args.inject_message {
         Some(msg) if msg.to_lowercase() == "none" => None, // User explicitly disabled

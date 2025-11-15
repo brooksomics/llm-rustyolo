@@ -1,10 +1,10 @@
 # llm-rustyolo
 
-A secure, firewalled wrapper for running AI agents (like Claude Code) in "YOLO mode" with complete protection against the "lethal trifecta" of security risks.
+A secure, firewalled wrapper for running AI agents (like Claude Code) in "YOLO mode" with comprehensive multi-layered security protection.
 
 ## What is this?
 
-This project provides a Rust-based CLI wrapper that runs AI coding agents inside a hardened Docker container with three layers of security:
+This project provides a Rust-based CLI wrapper that runs AI coding agents inside a hardened Docker container with four layers of security:
 
 1. **Filesystem Isolation**: The agent only sees your project directory and explicitly mounted volumes (like read-only `~/.ssh`). It cannot access your host filesystem.
 
@@ -12,7 +12,9 @@ This project provides a Rust-based CLI wrapper that runs AI coding agents inside
 
 3. **Network Isolation**: A dynamic iptables firewall is built at startup, blocking all outbound network traffic except for DNS and a whitelist of trusted domains you provide.
 
-This allows you to safely run agents with permission-skipping flags (like `--dangerously-skip-permissions`) without worrying about data exfiltration, filesystem damage, or network abuse.
+4. **Syscall Isolation**: Dangerous system calls are blocked via seccomp (secure computing mode), preventing operations like kernel module loading, process debugging, and system reboots.
+
+This allows you to safely run agents with permission-skipping flags (like `--dangerously-skip-permissions`) without worrying about data exfiltration, filesystem damage, network abuse, or kernel-level exploits.
 
 ## Architecture
 
@@ -244,6 +246,7 @@ The default message explains:
 - Filesystem isolation (only project directory and mounted volumes are accessible)
 - Privilege isolation (running as non-root with limited permissions)
 - Network isolation (blocked traffic except DNS and whitelisted domains)
+- Syscall isolation (dangerous system calls blocked via seccomp)
 
 **Custom message**:
 ```bash
