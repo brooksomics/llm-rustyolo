@@ -1,0 +1,494 @@
+{
+  "comment": "Highly restrictive seccomp profile for maximum security. Blocks all privileged operations, debugging, kernel manipulation, and namespace operations. Use this if you prioritize security over functionality.",
+  "defaultAction": "SCMP_ACT_ERRNO",
+  "defaultErrnoRet": 1,
+  "archMap": [
+    {
+      "architecture": "SCMP_ARCH_X86_64",
+      "subArchitectures": [
+        "SCMP_ARCH_X86",
+        "SCMP_ARCH_X32"
+      ]
+    },
+    {
+      "architecture": "SCMP_ARCH_AARCH64",
+      "subArchitectures": [
+        "SCMP_ARCH_ARM"
+      ]
+    },
+    {
+      "architecture": "SCMP_ARCH_RISCV64",
+      "subArchitectures": null
+    }
+  ],
+  "syscalls": [
+    {
+      "comment": "Core file operations",
+      "names": [
+        "access",
+        "chdir",
+        "chmod",
+        "chown",
+        "close",
+        "close_range",
+        "creat",
+        "dup",
+        "dup2",
+        "dup3",
+        "faccessat",
+        "faccessat2",
+        "fchdir",
+        "fchmod",
+        "fchmodat",
+        "fchmodat2",
+        "fchown",
+        "fchownat",
+        "fcntl",
+        "fcntl64",
+        "fdatasync",
+        "fgetxattr",
+        "flistxattr",
+        "flock",
+        "fremovexattr",
+        "fsetxattr",
+        "fstat",
+        "fstat64",
+        "fstatat64",
+        "fstatfs",
+        "fstatfs64",
+        "fsync",
+        "ftruncate",
+        "ftruncate64",
+        "getcwd",
+        "getdents",
+        "getdents64",
+        "getxattr",
+        "lchown",
+        "lgetxattr",
+        "link",
+        "linkat",
+        "listxattr",
+        "llistxattr",
+        "lremovexattr",
+        "lseek",
+        "lsetxattr",
+        "lstat",
+        "lstat64",
+        "mkdir",
+        "mkdirat",
+        "mknod",
+        "mknodat",
+        "newfstatat",
+        "open",
+        "openat",
+        "openat2",
+        "read",
+        "readahead",
+        "readlink",
+        "readlinkat",
+        "readv",
+        "removexattr",
+        "rename",
+        "renameat",
+        "renameat2",
+        "rmdir",
+        "setxattr",
+        "stat",
+        "stat64",
+        "statfs",
+        "statfs64",
+        "statx",
+        "symlink",
+        "symlinkat",
+        "sync",
+        "sync_file_range",
+        "syncfs",
+        "truncate",
+        "truncate64",
+        "unlink",
+        "unlinkat",
+        "utime",
+        "utimensat",
+        "utimensat_time64",
+        "utimes",
+        "write",
+        "writev"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Process management",
+      "names": [
+        "execve",
+        "execveat",
+        "exit",
+        "exit_group",
+        "fork",
+        "getpid",
+        "getppid",
+        "getpgid",
+        "getpgrp",
+        "getsid",
+        "gettid",
+        "kill",
+        "pidfd_open",
+        "pidfd_send_signal",
+        "setpgid",
+        "setsid",
+        "tgkill",
+        "tkill",
+        "vfork",
+        "wait4",
+        "waitid",
+        "waitpid"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Memory management",
+      "names": [
+        "brk",
+        "madvise",
+        "memfd_create",
+        "mincore",
+        "mlock",
+        "mlock2",
+        "mlockall",
+        "mmap",
+        "mmap2",
+        "mprotect",
+        "mremap",
+        "msync",
+        "munlock",
+        "munlockall",
+        "munmap",
+        "remap_file_pages"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Network operations",
+      "names": [
+        "accept",
+        "accept4",
+        "bind",
+        "connect",
+        "getpeername",
+        "getsockname",
+        "getsockopt",
+        "listen",
+        "recv",
+        "recvfrom",
+        "recvmmsg",
+        "recvmmsg_time64",
+        "recvmsg",
+        "send",
+        "sendmmsg",
+        "sendmsg",
+        "sendto",
+        "setsockopt",
+        "shutdown",
+        "socket",
+        "socketpair"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "I/O multiplexing",
+      "names": [
+        "epoll_create",
+        "epoll_create1",
+        "epoll_ctl",
+        "epoll_pwait",
+        "epoll_pwait2",
+        "epoll_wait",
+        "poll",
+        "ppoll",
+        "ppoll_time64",
+        "pselect6",
+        "pselect6_time64",
+        "select"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Time operations",
+      "names": [
+        "alarm",
+        "clock_getres",
+        "clock_getres_time64",
+        "clock_gettime",
+        "clock_gettime64",
+        "clock_nanosleep",
+        "clock_nanosleep_time64",
+        "getitimer",
+        "gettimeofday",
+        "nanosleep",
+        "setitimer",
+        "time",
+        "timer_create",
+        "timer_delete",
+        "timer_getoverrun",
+        "timer_gettime",
+        "timer_gettime64",
+        "timer_settime",
+        "timer_settime64",
+        "timerfd_create",
+        "timerfd_gettime",
+        "timerfd_gettime64",
+        "timerfd_settime",
+        "timerfd_settime64",
+        "times"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Signal handling",
+      "names": [
+        "pause",
+        "restart_syscall",
+        "rt_sigaction",
+        "rt_sigpending",
+        "rt_sigprocmask",
+        "rt_sigqueueinfo",
+        "rt_sigreturn",
+        "rt_sigsuspend",
+        "rt_sigtimedwait",
+        "rt_sigtimedwait_time64",
+        "rt_tgsigqueueinfo",
+        "sigaltstack",
+        "signalfd",
+        "signalfd4",
+        "sigpending",
+        "sigprocmask",
+        "sigreturn",
+        "sigsuspend"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "User/group operations",
+      "names": [
+        "getegid",
+        "getegid32",
+        "geteuid",
+        "geteuid32",
+        "getgid",
+        "getgid32",
+        "getgroups",
+        "getgroups32",
+        "getresgid",
+        "getresgid32",
+        "getresuid",
+        "getresuid32",
+        "getuid",
+        "getuid32",
+        "setfsgid",
+        "setfsgid32",
+        "setfsuid",
+        "setfsuid32",
+        "setgid",
+        "setgid32",
+        "setgroups",
+        "setgroups32",
+        "setregid",
+        "setregid32",
+        "setresgid",
+        "setresgid32",
+        "setresuid",
+        "setresuid32",
+        "setreuid",
+        "setreuid32",
+        "setuid",
+        "setuid32"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Scheduling and priority",
+      "names": [
+        "getpriority",
+        "sched_get_priority_max",
+        "sched_get_priority_min",
+        "sched_getaffinity",
+        "sched_getattr",
+        "sched_getparam",
+        "sched_getscheduler",
+        "sched_rr_get_interval",
+        "sched_rr_get_interval_time64",
+        "sched_setaffinity",
+        "sched_setattr",
+        "sched_setparam",
+        "sched_setscheduler",
+        "sched_yield",
+        "setpriority"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Resource limits",
+      "names": [
+        "getrlimit",
+        "getrusage",
+        "prlimit64",
+        "setrlimit",
+        "ugetrlimit"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "File I/O operations",
+      "names": [
+        "copy_file_range",
+        "fallocate",
+        "pread64",
+        "preadv",
+        "preadv2",
+        "pwrite64",
+        "pwritev",
+        "pwritev2",
+        "sendfile",
+        "sendfile64",
+        "splice",
+        "tee",
+        "vmsplice"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Terminal and I/O control (needed for interactive sessions)",
+      "names": [
+        "ioctl"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Miscellaneous allowed syscalls",
+      "names": [
+        "capget",
+        "eventfd",
+        "eventfd2",
+        "fadvise64",
+        "fadvise64_64",
+        "futex",
+        "futex_requeue",
+        "futex_time64",
+        "futex_wait",
+        "futex_waitv",
+        "futex_wake",
+        "futimesat",
+        "getcpu",
+        "getrandom",
+        "inotify_add_watch",
+        "inotify_init",
+        "inotify_init1",
+        "inotify_rm_watch",
+        "pipe",
+        "pipe2",
+        "prctl",
+        "rseq",
+        "seccomp",
+        "set_robust_list",
+        "set_tid_address",
+        "sysinfo",
+        "umask",
+        "uname"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "IPC - Message queues",
+      "names": [
+        "mq_getsetattr",
+        "mq_notify",
+        "mq_open",
+        "mq_timedreceive",
+        "mq_timedreceive_time64",
+        "mq_timedsend",
+        "mq_timedsend_time64",
+        "mq_unlink"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "IPC - System V",
+      "names": [
+        "msgctl",
+        "msgget",
+        "msgrcv",
+        "msgsnd",
+        "semctl",
+        "semget",
+        "semop",
+        "semtimedop",
+        "semtimedop_time64",
+        "shmat",
+        "shmctl",
+        "shmdt",
+        "shmget"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Async I/O",
+      "names": [
+        "io_cancel",
+        "io_destroy",
+        "io_getevents",
+        "io_pgetevents",
+        "io_pgetevents_time64",
+        "io_setup",
+        "io_submit",
+        "io_uring_enter",
+        "io_uring_register",
+        "io_uring_setup"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Architecture-specific operations (needed for Node.js)",
+      "names": [
+        "arch_prctl",
+        "get_thread_area",
+        "set_thread_area"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "comment": "Restricted personality changes",
+      "names": [
+        "personality"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 0,
+          "op": "SCMP_CMP_EQ"
+        }
+      ]
+    },
+    {
+      "comment": "Allow clone for thread creation only (block namespace operations)",
+      "names": [
+        "clone"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 2114060288,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ]
+    },
+    {
+      "comment": "Block clone3 completely (prevents new namespace creation)",
+      "names": [
+        "clone3"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 38
+    }
+  ]
+}

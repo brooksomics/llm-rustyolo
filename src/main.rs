@@ -1,16 +1,21 @@
 use clap::{Args, Parser, Subcommand};
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 mod update;
 
+// Embed the default seccomp profile at compile time
+const DEFAULT_SECCOMP_PROFILE: &str = include_str!("../seccomp/seccomp-default.json");
+
 /// A secure, firewalled Docker wrapper for AI agents.
 ///
-/// This tool builds a 'docker run' command to enforce the "Lethal Trifecta" of security:
+/// This tool builds a 'docker run' command to enforce four layers of security:
 /// 1. Filesystem Isolation (via read-only volume mounts)
 /// 2. Privilege Isolation (by running as a non-root user)
 /// 3. Network Isolation (by building an iptables firewall inside the container)
+/// 4. Syscall Isolation (via seccomp to block dangerous system calls)
 #[derive(Parser, Debug)]
 #[command(name = "rustyolo", version, about, long_about = None)]
 #[command(args_conflicts_with_subcommands = true)]
@@ -78,6 +83,12 @@ struct RunArgs {
     /// Skip version check on startup
     #[arg(long)]
     skip_version_check: bool,
+
+    /// Path to a custom seccomp profile, or 'none' to disable seccomp.
+    /// If not specified, uses the embedded conservative default profile.
+    /// Example: --seccomp-profile ./seccomp/seccomp-restrictive.json
+    #[arg(long = "seccomp-profile")]
+    seccomp_profile: Option<String>,
 }
 
 fn main() {
@@ -98,6 +109,7 @@ fn main() {
                 image: "ghcr.io/brooksomics/llm-rustyolo:latest".to_string(),
                 additional: Vec::new(),
                 skip_version_check: false,
+                seccomp_profile: None,
             });
 
             if !run_args.skip_version_check {
@@ -183,9 +195,56 @@ fn check_for_updates() {
     // Silently ignore errors in version checking to not disrupt normal usage
 }
 
+/// Sets up seccomp syscall filtering for the Docker container.
+/// Returns an optional `PathBuf` to keep the temp file alive if using the embedded profile.
+fn setup_seccomp(docker_cmd: &mut Command, seccomp_profile: Option<&str>) -> Option<PathBuf> {
+    match seccomp_profile {
+        Some("none") => {
+            // User explicitly disabled seccomp
+            println!("[RustyYOLO] ⚠️  Seccomp disabled - syscall filtering is OFF");
+            docker_cmd.arg("--security-opt").arg("seccomp=unconfined");
+            None
+        }
+        Some(custom_path) => {
+            // User provided a custom profile path
+            let profile_path = PathBuf::from(custom_path);
+            if !profile_path.exists() {
+                eprintln!("[RustyYOLO] ❌ Seccomp profile not found: {custom_path}");
+                std::process::exit(1);
+            }
+            println!("[RustyYOLO] Using custom seccomp profile: {custom_path}");
+            docker_cmd
+                .arg("--security-opt")
+                .arg(format!("seccomp={}", profile_path.display()));
+            None
+        }
+        None => {
+            // Use the embedded default profile
+            println!("[RustyYOLO] Using embedded default seccomp profile");
+
+            // Write the embedded profile to a temporary file
+            let temp_dir = env::temp_dir();
+            let temp_profile_path = temp_dir.join("rustyolo-seccomp-default.json");
+
+            fs::write(&temp_profile_path, DEFAULT_SECCOMP_PROFILE)
+                .expect("Failed to write seccomp profile to temp file");
+
+            docker_cmd
+                .arg("--security-opt")
+                .arg(format!("seccomp={}", temp_profile_path.display()));
+
+            // Return the temp file so it doesn't get deleted until the function ends
+            Some(temp_profile_path)
+        }
+    }
+}
+
 fn run_agent(args: RunArgs) {
     let mut docker_cmd = Command::new("docker");
     docker_cmd.arg("run").arg("-it").arg("--rm");
+
+    // --- 4. Syscall Isolation (Seccomp) ---
+    let _seccomp_temp_file = setup_seccomp(&mut docker_cmd, args.seccomp_profile.as_deref());
 
     // --- 3. Network Isolation ---
     docker_cmd.arg("--cap-add=NET_ADMIN");
