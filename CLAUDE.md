@@ -455,8 +455,8 @@ See [seccomp/README.md](seccomp/README.md) for detailed documentation on seccomp
 ### What This Does NOT Protect Against
 
 - **Malicious Code in Your Project**: If the agent writes malicious code to your project, it will be owned by you and executed when you run it
-- **Resource Exhaustion**: The agent could theoretically consume all CPU/memory (consider adding Docker resource limits)
-- **Side Channels**: The agent could potentially encode data in DNS queries or timing attacks (though this is highly unlikely)
+- **Dynamic IP Changes**: Domains are resolved to IPs once at container startup. If a CDN or service changes IPs mid-session, connections may fail until you restart the container (see Troubleshooting below)
+- **Side Channels**: The agent could potentially use timing attacks or other sophisticated side channels (though this is highly unlikely in practice)
 
 ### Best Practices
 
@@ -493,6 +493,32 @@ docker logs <container-id>
 
 Add the required domains to `--allow-domains`. Use your browser's network inspector to see what domains the service uses.
 
+### Connections fail mid-session (Dynamic IP issue)
+
+**Symptom**: Network connections work initially but fail after some time, especially with CDN-backed services (GitHub, Anthropic API, npm, PyPI).
+
+**Cause**: The firewall resolves domain names to IP addresses once at container startup. If the service rotates IPs (common with CDNs and load balancers), the new IPs won't be in the firewall allowlist.
+
+**Workarounds**:
+1. **Restart the container**: Simply exit and restart `rustyolo` to re-resolve domains to current IPs
+2. **Use audit logging**: Run with `--audit-log basic` to see blocked connections and confirm this is the issue
+3. **Enable verbose logging**: Use `--audit-log verbose` to see when the agent is trying to connect to new IPs
+
+**Example**:
+```bash
+# If you see connection failures after 30+ minutes
+# Exit the container and restart rustyolo
+rustyolo --audit-log basic claude
+
+# Check logs for blocked IPs
+docker ps -a  # Get container ID from last run
+docker logs <container-id> | grep AUDIT-BLOCK
+```
+
+**Why not auto-refresh?**: Automatically re-resolving domains would add complexity and potential security issues (DNS cache poisoning, race conditions). For most sessions, a single resolution at startup is sufficient.
+
+**When this matters**: Long-running sessions (1+ hours), especially during deployments when CDNs may rotate IPs more frequently.
+
 ## Extending
 
 ### Adding New Agents
@@ -525,11 +551,17 @@ You can modify `entrypoint.sh` to add more sophisticated firewall rules, like:
 
 ### Resource Limits
 
-Add Docker resource limits in `src/main.rs`:
-```rust
-docker_cmd.arg("--memory").arg("2g");
-docker_cmd.arg("--cpus").arg("2");
+Resource limits are now built-in with sensible defaults (4GB RAM, 4 CPUs, 256 PIDs). You can customize them:
+
+```bash
+# Custom resource limits
+rustyolo --memory 8g --cpus 8 --pids-limit 512 claude
+
+# Disable limits (not recommended)
+rustyolo --memory unlimited --cpus unlimited claude
 ```
+
+See `rustyolo --help` for all available options.
 
 ## License
 
