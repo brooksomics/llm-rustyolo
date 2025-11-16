@@ -52,6 +52,24 @@ pub fn detect_installation_method() -> InstallMethod {
         if path_str.contains("/Cellar/rustyolo/") {
             return InstallMethod::Homebrew;
         }
+
+        // Check if binary is a Homebrew symlink
+        // Homebrew creates symlinks in /opt/homebrew/bin or /usr/local/bin
+        if path_str.starts_with("/opt/homebrew/bin/")
+            || path_str.starts_with("/usr/local/bin/")
+            || path_str.starts_with("/home/linuxbrew/.linuxbrew/bin/")
+        {
+            // Try to resolve the symlink to see if it points to Homebrew Cellar
+            if let Ok(resolved_path) = std::fs::canonicalize(&exe_path) {
+                let resolved_str = resolved_path.to_string_lossy();
+                if resolved_str.contains("/Cellar/rustyolo/") {
+                    return InstallMethod::Homebrew;
+                }
+            }
+            // Even if we can't resolve it, if it's in a Homebrew bin directory,
+            // it's likely a Homebrew installation
+            return InstallMethod::Homebrew;
+        }
     }
 
     InstallMethod::Manual
