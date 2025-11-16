@@ -3,6 +3,13 @@ set -euo pipefail
 
 # --- 1. CONFIGURE FIREWALL (as root) ---
 echo "[RustyYOLO Firewall] Setting up network restrictions..."
+
+# Configure audit logging
+AUDIT_LOG=${AUDIT_LOG:-none}
+if [ "$AUDIT_LOG" = "basic" ] || [ "$AUDIT_LOG" = "verbose" ]; then
+  echo "[RustyYOLO Firewall] Audit logging enabled: $AUDIT_LOG"
+fi
+
 iptables -P OUTPUT DROP
 iptables -A OUTPUT -o lo -j ACCEPT
 iptables -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
@@ -22,6 +29,13 @@ else
       continue
     fi
     echo "[RustyYOLO Firewall] ALLOWING DNS to: $dns_server"
+
+    # Verbose logging: log allowed DNS queries
+    if [ "$AUDIT_LOG" = "verbose" ]; then
+      iptables -A OUTPUT -p udp -d "$dns_server" --dport 53 -j LOG --log-prefix "[AUDIT-DNS-ALLOW] " --log-level 6
+      iptables -A OUTPUT -p tcp -d "$dns_server" --dport 53 -j LOG --log-prefix "[AUDIT-DNS-ALLOW] " --log-level 6
+    fi
+
     iptables -A OUTPUT -p udp -d "$dns_server" --dport 53 -j ACCEPT
     iptables -A OUTPUT -p tcp -d "$dns_server" --dport 53 -j ACCEPT
   done
@@ -41,12 +55,25 @@ for domain in $TRUSTED_DOMAINS; do
   if [ -n "$ips" ]; then
     for ip in $ips; do
       echo "[RustyYOLO Firewall] ALLOWING IP: $ip (for $domain)"
+
+      # Verbose logging: log allowed connections to whitelisted domains
+      if [ "$AUDIT_LOG" = "verbose" ]; then
+        iptables -A OUTPUT -d "$ip" -j LOG --log-prefix "[AUDIT-ALLOW-$domain] " --log-level 6
+      fi
+
       iptables -A OUTPUT -d "$ip" -j ACCEPT
     done
   else
     echo "[RustyYOLO Firewall] WARNING: Could not resolve $domain"
   fi
 done
+
+# Log blocked connections (basic and verbose modes)
+if [ "$AUDIT_LOG" = "basic" ] || [ "$AUDIT_LOG" = "verbose" ]; then
+  echo "[RustyYOLO Firewall] Adding audit logging for blocked connections"
+  iptables -A OUTPUT -j LOG --log-prefix "[AUDIT-BLOCK] " --log-level 4
+fi
+
 echo "[RustyYOLO Firewall] Setup complete. All other outbound traffic is blocked."
 
 

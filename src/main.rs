@@ -119,6 +119,14 @@ struct RunArgs {
     /// Example: --dns-servers "8.8.8.8 1.1.1.1"
     #[arg(long, default_value = "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1")]
     dns_servers: String,
+
+    /// Enable audit logging of security events (default: none).
+    /// - none: No audit logging (default)
+    /// - basic: Log blocked network connections and syscalls
+    /// - verbose: Also log allowed connections and resource usage
+    /// Logs are accessible via 'docker logs <container-id>'
+    #[arg(long, default_value = "none")]
+    audit_log: String,
 }
 
 fn main() {
@@ -145,6 +153,7 @@ fn main() {
                 cpus: "4".to_string(),
                 pids_limit: "256".to_string(),
                 dns_servers: "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1".to_string(),
+                audit_log: "none".to_string(),
             });
 
             if !run_args.skip_version_check {
@@ -367,6 +376,28 @@ fn run_agent(args: RunArgs) {
         docker_cmd
             .arg("-e")
             .arg(format!("DNS_SERVERS={}", args.dns_servers));
+    }
+
+    // --- Audit Logging ---
+    let audit_level = args.audit_log.to_lowercase();
+    match audit_level.as_str() {
+        "none" => {
+            // No logging - default behavior
+        }
+        "basic" => {
+            println!("[RustyYOLO] Audit logging: basic (blocked events only)");
+            docker_cmd.arg("-e").arg("AUDIT_LOG=basic");
+        }
+        "verbose" => {
+            println!("[RustyYOLO] Audit logging: verbose (all security events)");
+            docker_cmd.arg("-e").arg("AUDIT_LOG=verbose");
+        }
+        _ => {
+            eprintln!(
+                "[RustyYOLO] ⚠️  Invalid audit-log value: '{}'. Using 'none'.",
+                audit_level
+            );
+        }
     }
 
     // Build the trusted domains list
