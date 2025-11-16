@@ -95,6 +95,23 @@ struct RunArgs {
     /// Example: --seccomp-profile ./seccomp/seccomp-restrictive.json
     #[arg(long = "seccomp-profile")]
     seccomp_profile: Option<String>,
+
+    /// Maximum memory the container can use (default: 4g).
+    /// Use 'unlimited' to disable memory limits.
+    /// Examples: 2g, 512m, 4096m
+    #[arg(long, default_value = "4g")]
+    memory: String,
+
+    /// Number of CPUs the container can use (default: 4).
+    /// Use 'unlimited' to disable CPU limits.
+    /// Examples: 2, 4, 0.5
+    #[arg(long, default_value = "4")]
+    cpus: String,
+
+    /// Maximum number of processes the container can spawn (default: 256).
+    /// Use 'unlimited' to disable PID limits.
+    #[arg(long, default_value = "256")]
+    pids_limit: String,
 }
 
 fn main() {
@@ -117,6 +134,9 @@ fn main() {
                 skip_version_check: false,
                 inject_message: None,
                 seccomp_profile: None,
+                memory: "4g".to_string(),
+                cpus: "4".to_string(),
+                pids_limit: "256".to_string(),
             });
 
             if !run_args.skip_version_check {
@@ -260,6 +280,28 @@ fn run_agent(args: RunArgs) {
     docker_cmd
         .arg("--sysctl")
         .arg("net.ipv6.conf.all.disable_ipv6=1");
+
+    // --- Resource Limits (Defense against DoS/crypto mining) ---
+    if args.memory.to_lowercase() != "unlimited" {
+        docker_cmd.arg("--memory").arg(&args.memory);
+        println!("[RustyYOLO] Memory limit: {}", args.memory);
+    } else {
+        println!("[RustyYOLO] ⚠️  Memory limit disabled");
+    }
+
+    if args.cpus.to_lowercase() != "unlimited" {
+        docker_cmd.arg("--cpus").arg(&args.cpus);
+        println!("[RustyYOLO] CPU limit: {}", args.cpus);
+    } else {
+        println!("[RustyYOLO] ⚠️  CPU limit disabled");
+    }
+
+    if args.pids_limit.to_lowercase() != "unlimited" {
+        docker_cmd.arg("--pids-limit").arg(&args.pids_limit);
+        println!("[RustyYOLO] PIDs limit: {}", args.pids_limit);
+    } else {
+        println!("[RustyYOLO] ⚠️  PIDs limit disabled");
+    }
 
     // Build the trusted domains list
     let mut trusted_domains = args.allow_domains.unwrap_or_default();
