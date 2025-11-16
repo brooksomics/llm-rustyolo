@@ -376,6 +376,12 @@ fn run_agent(args: RunArgs) {
         docker_cmd
             .arg("-e")
             .arg(format!("DNS_SERVERS={}", args.dns_servers));
+
+        // Configure Docker to use these DNS servers
+        // This ensures the container actually queries these servers instead of Docker's default
+        for dns_server in args.dns_servers.split_whitespace() {
+            docker_cmd.arg("--dns").arg(dns_server);
+        }
     }
 
     // --- Audit Logging ---
