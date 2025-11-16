@@ -274,7 +274,54 @@ fn setup_seccomp(docker_cmd: &mut Command, seccomp_profile: Option<&str>) -> Opt
     }
 }
 
+/// Validates user-supplied volumes for dangerous mounts that could enable container escape.
+/// Returns an error message if dangerous volumes are detected, None otherwise.
+fn validate_volumes(volumes: &[String]) -> Option<String> {
+    for volume in volumes {
+        let vol_lower = volume.to_lowercase();
+
+        // Check for Docker socket - enables complete container escape
+        if vol_lower.contains("docker.sock") {
+            return Some(format!(
+                "Mounting the Docker socket is forbidden (security risk: container escape).\n\
+                 Attempted mount: {volume}\n\
+                 This would allow the agent to spawn new containers and bypass all security restrictions."
+            ));
+        }
+
+        // Check for other dangerous system mounts
+        let dangerous_paths = [
+            ("/proc", "process information"),
+            ("/sys", "system configuration"),
+            ("/dev", "devices"),
+            ("/boot", "boot files"),
+            ("/etc", "system configuration"),
+        ];
+
+        for (path, description) in &dangerous_paths {
+            // Match exact mount of these system directories (not subdirectories in user projects)
+            // e.g., block "-v /proc:/proc" but allow "-v /home/user/myproc:/myproc"
+            if vol_lower.starts_with(&format!("{}:", path)) {
+                return Some(format!(
+                    "Mounting {} is forbidden (security risk: {}).\n\
+                     Attempted mount: {volume}\n\
+                     If you need specific files, mount them individually rather than the entire directory.",
+                    path, description
+                ));
+            }
+        }
+    }
+    None
+}
+
 fn run_agent(args: RunArgs) {
+    // Validate volumes before constructing the Docker command
+    if let Some(error_msg) = validate_volumes(&args.volumes) {
+        eprintln!("[RustyYOLO] ❌ Dangerous volume mount detected!");
+        eprintln!("[RustyYOLO] {error_msg}");
+        std::process::exit(1);
+    }
+
     let mut docker_cmd = Command::new("docker");
     docker_cmd.arg("run").arg("-it").arg("--rm");
 
