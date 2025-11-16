@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # --- 1. CONFIGURE FIREWALL (as root) ---
 echo "[RustyYOLO Firewall] Setting up network restrictions..."
@@ -13,6 +13,12 @@ iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
 TRUSTED_DOMAINS=${TRUSTED_DOMAINS:-"github.com api.github.com pypi.org files.pythonhosted.org"}
 echo "[RustyYOLO Firewall] Resolving and allowing trusted domains: $TRUSTED_DOMAINS"
 for domain in $TRUSTED_DOMAINS; do
+  # Validate domain format to prevent command injection
+  # Allow: letters, digits, dots, hyphens, underscores (valid domain characters)
+  if ! echo "$domain" | grep -qE '^[a-zA-Z0-9._-]+$'; then
+    echo "[RustyYOLO Firewall] ERROR: Invalid domain format: $domain (skipping)"
+    continue
+  fi
   ips=$(dig +short "$domain" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || true)
   if [ -n "$ips" ]; then
     for ip in $ips; do

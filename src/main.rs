@@ -256,6 +256,11 @@ fn run_agent(args: RunArgs) {
     // --- 3. Network Isolation ---
     docker_cmd.arg("--cap-add=NET_ADMIN");
 
+    // Disable IPv6 to prevent firewall bypass (iptables only configures IPv4)
+    docker_cmd
+        .arg("--sysctl")
+        .arg("net.ipv6.conf.all.disable_ipv6=1");
+
     // Build the trusted domains list
     let mut trusted_domains = args.allow_domains.unwrap_or_default();
 
