@@ -5,6 +5,15 @@ All notable changes to rustyolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-11-16
+
+### Fixed
+- Homebrew installation detection now correctly identifies symlinked binaries ([#16](https://github.com/brooksomics/llm-rustyolo/pull/16))
+  - Detects binaries in `/opt/homebrew/bin/` and `/usr/local/bin/`
+  - Resolves symlinks to verify they point to Homebrew Cellar
+  - Fixes "IoError: No such file or directory" when running `rustyolo update` with Homebrew installations
+  - Homebrew users are now correctly directed to use `brew upgrade rustyolo` for CLI updates
+
 ## [0.3.0] - 2025-11-15
 
 ### Added
@@ -72,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[0.3.1]: https://github.com/brooksomics/llm-rustyolo/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/brooksomics/llm-rustyolo/releases/tag/v0.1.0
