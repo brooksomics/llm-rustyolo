@@ -6,8 +6,26 @@ echo "[RustyYOLO Firewall] Setting up network restrictions..."
 iptables -P OUTPUT DROP
 iptables -A OUTPUT -o lo -j ACCEPT
 iptables -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
-iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+
+# Configure DNS restrictions (defense against DNS exfiltration)
+DNS_SERVERS=${DNS_SERVERS:-"8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1"}
+if [ "$DNS_SERVERS" = "any" ]; then
+  echo "[RustyYOLO Firewall] WARNING: DNS to any server allowed (exfiltration risk!)"
+  iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+  iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+else
+  echo "[RustyYOLO Firewall] Restricting DNS to allowed servers: $DNS_SERVERS"
+  for dns_server in $DNS_SERVERS; do
+    # Validate IP format to prevent command injection
+    if ! echo "$dns_server" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+      echo "[RustyYOLO Firewall] ERROR: Invalid DNS server IP: $dns_server (skipping)"
+      continue
+    fi
+    echo "[RustyYOLO Firewall] ALLOWING DNS to: $dns_server"
+    iptables -A OUTPUT -p udp -d "$dns_server" --dport 53 -j ACCEPT
+    iptables -A OUTPUT -p tcp -d "$dns_server" --dport 53 -j ACCEPT
+  done
+fi
 
 # Read from TRUSTED_DOMAINS env var passed by the Rust wrapper
 TRUSTED_DOMAINS=${TRUSTED_DOMAINS:-"github.com api.github.com pypi.org files.pythonhosted.org"}

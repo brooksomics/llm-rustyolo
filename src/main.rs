@@ -112,6 +112,13 @@ struct RunArgs {
     /// Use 'unlimited' to disable PID limits.
     #[arg(long, default_value = "256")]
     pids_limit: String,
+
+    /// Space-separated list of DNS servers to allow (default: Google and Cloudflare public DNS).
+    /// Use 'any' to allow DNS to any server (NOT RECOMMENDED - enables exfiltration).
+    /// Default: "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1"
+    /// Example: --dns-servers "8.8.8.8 1.1.1.1"
+    #[arg(long, default_value = "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1")]
+    dns_servers: String,
 }
 
 fn main() {
@@ -137,6 +144,7 @@ fn main() {
                 memory: "4g".to_string(),
                 cpus: "4".to_string(),
                 pids_limit: "256".to_string(),
+                dns_servers: "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1".to_string(),
             });
 
             if !run_args.skip_version_check {
@@ -301,6 +309,17 @@ fn run_agent(args: RunArgs) {
         println!("[RustyYOLO] PIDs limit: {}", args.pids_limit);
     } else {
         println!("[RustyYOLO] ⚠️  PIDs limit disabled");
+    }
+
+    // --- DNS Restrictions (Defense against DNS exfiltration) ---
+    if args.dns_servers.to_lowercase() == "any" {
+        println!("[RustyYOLO] ⚠️  DNS restrictions disabled - exfiltration risk!");
+        docker_cmd.arg("-e").arg("DNS_SERVERS=any");
+    } else {
+        println!("[RustyYOLO] Allowed DNS servers: {}", args.dns_servers);
+        docker_cmd
+            .arg("-e")
+            .arg(format!("DNS_SERVERS={}", args.dns_servers));
     }
 
     // Build the trusted domains list
