@@ -354,9 +354,7 @@ fn configure_dns_restrictions(docker_cmd: &mut Command, dns_servers: &str) {
         docker_cmd.arg("-e").arg("DNS_SERVERS=any");
     } else {
         println!("[RustyYOLO] Allowed DNS servers: {dns_servers}");
-        docker_cmd
-            .arg("-e")
-            .arg(format!("DNS_SERVERS={dns_servers}"));
+        docker_cmd.arg("-e").arg(format!("DNS_SERVERS={dns_servers}"));
 
         // Configure Docker to use these DNS servers
         // This ensures the container actually queries these servers instead of Docker's default
@@ -454,9 +452,7 @@ fn run_agent(args: RunArgs) {
     docker_cmd.arg("--cap-add=NET_ADMIN");
 
     // Disable IPv6 to prevent firewall bypass (iptables only configures IPv4)
-    docker_cmd
-        .arg("--sysctl")
-        .arg("net.ipv6.conf.all.disable_ipv6=1");
+    docker_cmd.arg("--sysctl").arg("net.ipv6.conf.all.disable_ipv6=1");
 
     // --- Resource Limits (Defense against DoS/crypto mining) ---
     apply_resource_limits(&mut docker_cmd, &args.memory, &args.cpus, &args.pids_limit);
