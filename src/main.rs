@@ -95,6 +95,39 @@ struct RunArgs {
     /// Example: --seccomp-profile ./seccomp/seccomp-restrictive.json
     #[arg(long = "seccomp-profile")]
     seccomp_profile: Option<String>,
+
+    /// Maximum memory the container can use (default: 4g).
+    /// Use 'unlimited' to disable memory limits.
+    /// Examples: 2g, 512m, 4096m
+    #[arg(long, default_value = "4g")]
+    memory: String,
+
+    /// Number of CPUs the container can use (default: 4).
+    /// Use 'unlimited' to disable CPU limits.
+    /// Examples: 2, 4, 0.5
+    #[arg(long, default_value = "4")]
+    cpus: String,
+
+    /// Maximum number of processes the container can spawn (default: 256).
+    /// Use 'unlimited' to disable PID limits.
+    #[arg(long, default_value = "256")]
+    pids_limit: String,
+
+    /// Space-separated list of DNS servers to allow (default: Google and Cloudflare public DNS).
+    /// Use 'any' to allow DNS to any server (NOT RECOMMENDED - enables exfiltration).
+    /// Default: "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1"
+    /// Example: --dns-servers "8.8.8.8 1.1.1.1"
+    #[arg(long, default_value = "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1")]
+    dns_servers: String,
+
+    /// Enable audit logging of security events (default: none).
+    /// - none: No audit logging (default)
+    /// - basic: Log blocked network connections and syscalls
+    /// - verbose: Also log allowed connections and resource usage
+    ///
+    ///   Logs are accessible via 'docker logs <container-id>'
+    #[arg(long, default_value = "none")]
+    audit_log: String,
 }
 
 fn main() {
@@ -117,6 +150,11 @@ fn main() {
                 skip_version_check: false,
                 inject_message: None,
                 seccomp_profile: None,
+                memory: "4g".to_string(),
+                cpus: "4".to_string(),
+                pids_limit: "256".to_string(),
+                dns_servers: "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1".to_string(),
+                audit_log: "none".to_string(),
             });
 
             if !run_args.skip_version_check {
@@ -246,7 +284,164 @@ fn setup_seccomp(docker_cmd: &mut Command, seccomp_profile: Option<&str>) -> Opt
     }
 }
 
+/// Validates user-supplied volumes for dangerous mounts that could enable container escape.
+/// Returns an error message if dangerous volumes are detected, None otherwise.
+fn validate_volumes(volumes: &[String]) -> Option<String> {
+    for volume in volumes {
+        let vol_lower = volume.to_lowercase();
+
+        // Check for Docker socket - enables complete container escape
+        if vol_lower.contains("docker.sock") {
+            return Some(format!(
+                "Mounting the Docker socket is forbidden (security risk: container escape).\n\
+                 Attempted mount: {volume}\n\
+                 This would allow the agent to spawn new containers and bypass all security restrictions."
+            ));
+        }
+
+        // Check for other dangerous system mounts
+        let dangerous_paths = [
+            ("/proc", "process information"),
+            ("/sys", "system configuration"),
+            ("/dev", "devices"),
+            ("/boot", "boot files"),
+            ("/etc", "system configuration"),
+        ];
+
+        for (path, description) in &dangerous_paths {
+            // Match exact mount of these system directories (not subdirectories in user projects)
+            // e.g., block "-v /proc:/proc" but allow "-v /home/user/myproc:/myproc"
+            if vol_lower.starts_with(&format!("{path}:")) {
+                return Some(format!(
+                    "Mounting {path} is forbidden (security risk: {description}).\n\
+                     Attempted mount: {volume}\n\
+                     If you need specific files, mount them individually rather than the entire directory."
+                ));
+            }
+        }
+    }
+    None
+}
+
+/// Apply resource limits to the Docker command to prevent `DoS` attacks.
+fn apply_resource_limits(docker_cmd: &mut Command, memory: &str, cpus: &str, pids_limit: &str) {
+    if memory.to_lowercase() == "unlimited" {
+        println!("[RustyYOLO] ⚠️  Memory limit disabled");
+    } else {
+        docker_cmd.arg("--memory").arg(memory);
+        println!("[RustyYOLO] Memory limit: {memory}");
+    }
+
+    if cpus.to_lowercase() == "unlimited" {
+        println!("[RustyYOLO] ⚠️  CPU limit disabled");
+    } else {
+        docker_cmd.arg("--cpus").arg(cpus);
+        println!("[RustyYOLO] CPU limit: {cpus}");
+    }
+
+    if pids_limit.to_lowercase() == "unlimited" {
+        println!("[RustyYOLO] ⚠️  PIDs limit disabled");
+    } else {
+        docker_cmd.arg("--pids-limit").arg(pids_limit);
+        println!("[RustyYOLO] PIDs limit: {pids_limit}");
+    }
+}
+
+/// Configure DNS restrictions to prevent exfiltration attacks.
+fn configure_dns_restrictions(docker_cmd: &mut Command, dns_servers: &str) {
+    if dns_servers.to_lowercase() == "any" {
+        println!("[RustyYOLO] ⚠️  DNS restrictions disabled - exfiltration risk!");
+        docker_cmd.arg("-e").arg("DNS_SERVERS=any");
+    } else {
+        println!("[RustyYOLO] Allowed DNS servers: {dns_servers}");
+        docker_cmd.arg("-e").arg(format!("DNS_SERVERS={dns_servers}"));
+
+        // Configure Docker to use these DNS servers
+        // This ensures the container actually queries these servers instead of Docker's default
+        for dns_server in dns_servers.split_whitespace() {
+            docker_cmd.arg("--dns").arg(dns_server);
+        }
+    }
+}
+
+/// Configure audit logging level for security events.
+fn configure_audit_logging(docker_cmd: &mut Command, audit_log: &str) {
+    let audit_level = audit_log.to_lowercase();
+    match audit_level.as_str() {
+        "none" => {
+            // No logging - default behavior
+        }
+        "basic" => {
+            println!("[RustyYOLO] Audit logging: basic (blocked events only)");
+            docker_cmd.arg("-e").arg("AUDIT_LOG=basic");
+        }
+        "verbose" => {
+            println!("[RustyYOLO] Audit logging: verbose (all security events)");
+            docker_cmd.arg("-e").arg("AUDIT_LOG=verbose");
+        }
+        _ => {
+            eprintln!("[RustyYOLO] ⚠️  Invalid audit-log value: '{audit_level}'. Using 'none'.");
+        }
+    }
+}
+
+/// Setup filesystem isolation by mounting volumes and setting working directory.
+fn setup_filesystem_isolation(
+    docker_cmd: &mut Command,
+    volumes: Vec<String>,
+    envs: Vec<String>,
+    auth_home: Option<PathBuf>,
+) {
+    // --- 1. Filesystem Isolation ---
+    let pwd = env::current_dir().expect("Failed to get current directory");
+    docker_cmd.arg("-v").arg(format!("{}:/app", pwd.display()));
+    docker_cmd.arg("-w").arg("/app");
+
+    // Add user-specified volumes
+    for vol in volumes {
+        println!("[RustyYOLO] Mounting volume: {vol}");
+        docker_cmd.arg("-v").arg(vol);
+    }
+
+    // Add user-specified env vars
+    for env_var in envs {
+        docker_cmd.arg("-e").arg(env_var);
+    }
+
+    // Mount persistent auth/history directories
+    let default_auth_home =
+        dirs::config_dir().unwrap_or(PathBuf::from("~/.config")).join("rustyolo");
+    let auth_home_path = auth_home.unwrap_or(default_auth_home);
+
+    // Ensure the directory exists on the host
+    if !auth_home_path.exists() {
+        std::fs::create_dir_all(&auth_home_path).expect("Failed to create auth-home directory");
+    }
+
+    let auth_path = auth_home_path
+        .canonicalize()
+        .expect("Failed to get absolute path for --auth-home");
+
+    let container_auth_path = "/home/agent/.config/rustyolo";
+    println!(
+        "[RustyYOLO] Mounting auth home: {} -> {}",
+        auth_path.display(),
+        container_auth_path
+    );
+    docker_cmd
+        .arg("-v")
+        .arg(format!("{}:{container_auth_path}", auth_path.display()));
+    docker_cmd.arg("-e").arg(format!("PERSISTENT_DIRS={container_auth_path}"));
+}
+
 fn run_agent(args: RunArgs) {
+    // Validate volumes before constructing the Docker command
+    if let Some(error_msg) = validate_volumes(&args.volumes) {
+        eprintln!("[RustyYOLO] ❌ Dangerous volume mount detected!");
+        eprintln!("[RustyYOLO] {error_msg}");
+        std::process::exit(1);
+    }
+
     let mut docker_cmd = Command::new("docker");
     docker_cmd.arg("run").arg("-it").arg("--rm");
 
@@ -255,6 +450,18 @@ fn run_agent(args: RunArgs) {
 
     // --- 3. Network Isolation ---
     docker_cmd.arg("--cap-add=NET_ADMIN");
+
+    // Disable IPv6 to prevent firewall bypass (iptables only configures IPv4)
+    docker_cmd.arg("--sysctl").arg("net.ipv6.conf.all.disable_ipv6=1");
+
+    // --- Resource Limits (Defense against DoS/crypto mining) ---
+    apply_resource_limits(&mut docker_cmd, &args.memory, &args.cpus, &args.pids_limit);
+
+    // --- DNS Restrictions (Defense against DNS exfiltration) ---
+    configure_dns_restrictions(&mut docker_cmd, &args.dns_servers);
+
+    // --- Audit Logging ---
+    configure_audit_logging(&mut docker_cmd, &args.audit_log);
 
     // Build the trusted domains list
     let mut trusted_domains = args.allow_domains.unwrap_or_default();
@@ -285,45 +492,7 @@ fn run_agent(args: RunArgs) {
     docker_cmd.arg("-e").arg(format!("AGENT_GID={gid_str}"));
 
     // --- 1. Filesystem Isolation ---
-    let pwd = env::current_dir().expect("Failed to get current directory");
-    docker_cmd.arg("-v").arg(format!("{}:/app", pwd.display()));
-    docker_cmd.arg("-w").arg("/app");
-
-    // Add user-specified volumes
-    for vol in args.volumes {
-        println!("[RustyYOLO] Mounting volume: {vol}");
-        docker_cmd.arg("-v").arg(vol);
-    }
-
-    // Add user-specified env vars
-    for env_var in args.envs {
-        docker_cmd.arg("-e").arg(env_var);
-    }
-
-    // Mount persistent auth/history directories
-    let default_auth_home =
-        dirs::config_dir().unwrap_or(PathBuf::from("~/.config")).join("rustyolo");
-    let auth_home_path = args.auth_home.unwrap_or(default_auth_home);
-
-    // Ensure the directory exists on the host
-    if !auth_home_path.exists() {
-        std::fs::create_dir_all(&auth_home_path).expect("Failed to create auth-home directory");
-    }
-
-    let auth_path = auth_home_path
-        .canonicalize()
-        .expect("Failed to get absolute path for --auth-home");
-
-    let container_auth_path = "/home/agent/.config/rustyolo";
-    println!(
-        "[RustyYOLO] Mounting auth home: {} -> {}",
-        auth_path.display(),
-        container_auth_path
-    );
-    docker_cmd
-        .arg("-v")
-        .arg(format!("{}:{}", auth_path.display(), container_auth_path));
-    docker_cmd.arg("-e").arg(format!("PERSISTENT_DIRS={container_auth_path}"));
+    setup_filesystem_isolation(&mut docker_cmd, args.volumes, args.envs, args.auth_home);
 
     // Add the image
     docker_cmd.arg(&args.image);

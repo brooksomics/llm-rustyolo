@@ -5,6 +5,70 @@ All notable changes to rustyolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-11-16
+
+### Added
+- **Resource limits** with configurable defaults ([#PR](https://github.com/brooksomics/llm-rustyolo/pull/PR))
+  - `--memory` flag (default: 4g) - Prevents memory exhaustion attacks
+  - `--cpus` flag (default: 4) - Prevents CPU monopolization
+  - `--pids-limit` flag (default: 256) - Prevents fork bombs
+  - All limits can be customized or disabled with `unlimited`
+- **DNS server restrictions** to prevent exfiltration ([#PR](https://github.com/brooksomics/llm-rustyolo/pull/PR))
+  - `--dns-servers` flag (default: Google & Cloudflare public DNS)
+  - Restricts DNS queries to trusted nameservers only
+  - Prevents DNS tunneling data exfiltration attacks
+  - Option to disable with `--dns-servers any` (not recommended)
+- **Audit logging** for security forensics and debugging ([#PR](https://github.com/brooksomics/llm-rustyolo/pull/PR))
+  - `--audit-log` flag with `none`, `basic`, `verbose` levels
+  - Basic: Logs blocked network connections
+  - Verbose: Logs all security events (allowed + blocked)
+  - Accessible via `docker logs <container-id>`
+- **Volume validation** to prevent container escape ([#PR](https://github.com/brooksomics/llm-rustyolo/pull/PR))
+  - Blocks Docker socket mounts (`/var/run/docker.sock`)
+  - Blocks dangerous system directories (`/proc`, `/sys`, `/dev`, `/boot`, `/etc`)
+  - Clear error messages explaining security risks
+  - Validates all user-supplied volume mounts before execution
+
+### Fixed
+- **CRITICAL: IPv6 firewall bypass** ([#PR](https://github.com/brooksomics/llm-rustyolo/pull/PR))
+  - Firewall was only configured for IPv4, allowing complete bypass via IPv6
+  - Fix: Disable IPv6 via sysctl to eliminate the attack vector
+  - Eliminates an entire class of network-based attacks
+- **CRITICAL: Command injection vulnerability** ([#PR](https://github.com/brooksomics/llm-rustyolo/pull/PR))
+  - User-supplied domains were passed to shell without validation
+  - Fix: Validate domains against `^[a-zA-Z0-9._-]+$` before processing
+  - Prevents arbitrary command execution via malicious domain names
+- **DNS resolution failure** with restricted DNS servers ([#PR](https://github.com/brooksomics/llm-rustyolo/pull/PR))
+  - Docker wasn't configured to use the allowed DNS servers
+  - Fix: Add `--dns` flags to docker run command
+  - Ensures container uses correct DNS servers for resolution
+
+### Changed
+- Improved bash defensive practices in `entrypoint.sh`
+  - Changed from `set -e` to `set -euo pipefail`
+  - Fail on undefined variables and pipeline errors
+- Enhanced security documentation in `CLAUDE.md`
+  - Added dynamic IP resolution limitation to "What This Does NOT Protect Against"
+  - New troubleshooting section for mid-session connection failures
+  - Updated resource limits documentation with new CLI flags
+  - Clear workarounds and examples for common issues
+
+### Security
+- **Defense-in-depth improvements**: All 4 security layers significantly hardened
+- **IPv6 attack vector eliminated**: Complete IPv6 bypass vulnerability patched
+- **Command injection prevented**: Input validation for all user-supplied domains and IPs
+- **DNS exfiltration mitigated**: DNS traffic restricted to trusted public nameservers
+- **Container escape blocked**: Dangerous volume mounts detected and rejected
+- **Resource DoS prevention**: CPU, memory, and PID limits protect host system
+- **Audit capabilities**: Optional logging enables attack detection and forensics
+
+### Documentation
+- Added comprehensive troubleshooting for dynamic IP issues
+- Documented DNS server restrictions and configuration
+- Explained resource limit defaults and customization
+- Provided audit logging usage examples
+- Clarified known limitations with workarounds
+
 ## [0.3.1] - 2025-11-16
 
 ### Fixed
@@ -81,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[0.4.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/brooksomics/llm-rustyolo/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.1.0...v0.2.0
