@@ -414,7 +414,7 @@ The seccomp profile:
   - `bpf` - Loading eBPF programs
   - `keyctl` - Kernel keyring manipulation
   - `perf_event_open` - Performance monitoring (info leak)
-  - Many others (see [seccomp/README.md](seccomp/README.md) for the full list)
+  - Many others (see [docs/security/seccomp.md](docs/security/seccomp.md) for the full list)
 
 This means:
 - Even if the agent is compromised, it cannot use dangerous syscalls
@@ -439,7 +439,7 @@ Disable seccomp (for debugging only, **not recommended**):
 rustyolo --seccomp-profile none claude
 ```
 
-See [seccomp/README.md](seccomp/README.md) for detailed documentation on seccomp profiles, including how to create custom profiles.
+See [docs/security/seccomp.md](docs/security/seccomp.md) for detailed documentation on seccomp profiles, including how to create custom profiles.
 
 ## Security Considerations
 

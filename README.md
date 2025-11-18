@@ -67,7 +67,7 @@ docker pull ghcr.io/brooksomics/llm-rustyolo:latest
 docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
-For detailed installation instructions, see [INSTALL.md](./INSTALL.md).
+For detailed installation instructions, see [docs/guides/installation.md](./docs/guides/installation.md).
 
 ## Usage
 
@@ -197,9 +197,11 @@ Options:
 
 ## Documentation
 
-- [INSTALL.md](./INSTALL.md) - Detailed installation instructions
+- [docs/guides/installation.md](./docs/guides/installation.md) - Detailed installation instructions
 - [CLAUDE.md](./CLAUDE.md) - Complete documentation on how it works, security considerations, and advanced usage
-- [SECURITY.md](./SECURITY.md) - Secret scanning and security protection setup
+- [docs/security/security-policy.md](./docs/security/security-policy.md) - Secret scanning and security protection setup
+- [docs/security/seccomp.md](./docs/security/seccomp.md) - Seccomp profiles and syscall filtering
+- [docs/](./docs/) - Full documentation index
 
 ## Security
 
@@ -209,7 +211,7 @@ This repository implements multiple layers of secret detection to prevent accide
 - **GitHub Actions** - Automated secret scanning on every push and PR
 - **git-secrets** - Additional local protection with custom patterns
 
-See [SECURITY.md](./SECURITY.md) for complete setup instructions and best practices.
+See [docs/security/security-policy.md](./docs/security/security-policy.md) for complete setup instructions and best practices.
 
 ## License
 
@@ -217,4 +219,4 @@ MIT License
 
 ## Contributing
 
-Contributions welcome! Please open an issue or PR.
+Contributions welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
