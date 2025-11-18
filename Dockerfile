@@ -1,5 +1,6 @@
 # Start from the official Node.js image
-FROM node:latest
+# Using LTS version (20) with slim variant for smaller image size
+FROM node:20-slim
 
 # Install dependencies:
 # - iptables: The Linux firewall (for network isolation)

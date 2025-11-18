@@ -9,6 +9,26 @@ mod update;
 // Embed the default seccomp profile at compile time
 const DEFAULT_SECCOMP_PROFILE: &str = include_str!("../seccomp/seccomp-default.json");
 
+// Default resource limits
+const DEFAULT_MEMORY: &str = "4g";
+const DEFAULT_CPUS: &str = "4";
+const DEFAULT_PIDS_LIMIT: &str = "256";
+
+// Default DNS servers (Google and Cloudflare public DNS)
+const DEFAULT_DNS_SERVERS: &str = "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1";
+
+// Anthropic API domains (automatically added for Claude agent)
+const ANTHROPIC_DOMAINS: &str = "api.anthropic.com anthropic.com";
+
+// Default Docker image
+const DEFAULT_IMAGE: &str = "ghcr.io/brooksomics/llm-rustyolo:latest";
+
+// Default agent
+const DEFAULT_AGENT: &str = "claude";
+
+// Default audit log level
+const DEFAULT_AUDIT_LOG: &str = "none";
+
 /// A secure, firewalled Docker wrapper for AI agents.
 ///
 /// This tool builds a 'docker run' command to enforce four layers of security:
@@ -48,7 +68,7 @@ enum Commands {
 #[derive(Args, Debug)]
 struct RunArgs {
     /// The agent to run (e.g., 'claude', 'codex', 'gemini-cli').
-    #[arg(default_value = "claude")]
+    #[arg(default_value = DEFAULT_AGENT)]
     agent: String,
 
     /// Additional volumes to mount (e.g., `-v ~/.ssh:/home/agent/.ssh:ro`)
@@ -73,7 +93,7 @@ struct RunArgs {
     auth_home: Option<PathBuf>,
 
     /// The Docker image to use.
-    #[arg(long, default_value = "ghcr.io/brooksomics/llm-rustyolo:latest")]
+    #[arg(long, default_value = DEFAULT_IMAGE)]
     image: String,
 
     /// Arguments to pass directly to the agent (e.g., --help or -p "prompt").
@@ -99,25 +119,25 @@ struct RunArgs {
     /// Maximum memory the container can use (default: 4g).
     /// Use 'unlimited' to disable memory limits.
     /// Examples: 2g, 512m, 4096m
-    #[arg(long, default_value = "4g")]
+    #[arg(long, default_value = DEFAULT_MEMORY)]
     memory: String,
 
     /// Number of CPUs the container can use (default: 4).
     /// Use 'unlimited' to disable CPU limits.
     /// Examples: 2, 4, 0.5
-    #[arg(long, default_value = "4")]
+    #[arg(long, default_value = DEFAULT_CPUS)]
     cpus: String,
 
     /// Maximum number of processes the container can spawn (default: 256).
     /// Use 'unlimited' to disable PID limits.
-    #[arg(long, default_value = "256")]
+    #[arg(long, default_value = DEFAULT_PIDS_LIMIT)]
     pids_limit: String,
 
     /// Space-separated list of DNS servers to allow (default: Google and Cloudflare public DNS).
     /// Use 'any' to allow DNS to any server (NOT RECOMMENDED - enables exfiltration).
     /// Default: "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1"
     /// Example: --dns-servers "8.8.8.8 1.1.1.1"
-    #[arg(long, default_value = "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1")]
+    #[arg(long, default_value = DEFAULT_DNS_SERVERS)]
     dns_servers: String,
 
     /// Enable audit logging of security events (default: none).
@@ -126,8 +146,12 @@ struct RunArgs {
     /// - verbose: Also log allowed connections and resource usage
     ///
     ///   Logs are accessible via 'docker logs <container-id>'
-    #[arg(long, default_value = "none")]
+    #[arg(long, default_value = DEFAULT_AUDIT_LOG)]
     audit_log: String,
+
+    /// Print the Docker command without executing it (dry run mode)
+    #[arg(long)]
+    dry_run: bool,
 }
 
 fn main() {
@@ -140,21 +164,22 @@ fn main() {
         None => {
             // Run mode - check for updates first unless skipped
             let run_args = cli.run_args.unwrap_or_else(|| RunArgs {
-                agent: "claude".to_string(),
+                agent: DEFAULT_AGENT.to_string(),
                 volumes: Vec::new(),
                 envs: Vec::new(),
                 allow_domains: None,
                 auth_home: None,
-                image: "ghcr.io/brooksomics/llm-rustyolo:latest".to_string(),
+                image: DEFAULT_IMAGE.to_string(),
                 additional: Vec::new(),
                 skip_version_check: false,
                 inject_message: None,
                 seccomp_profile: None,
-                memory: "4g".to_string(),
-                cpus: "4".to_string(),
-                pids_limit: "256".to_string(),
-                dns_servers: "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1".to_string(),
-                audit_log: "none".to_string(),
+                memory: DEFAULT_MEMORY.to_string(),
+                cpus: DEFAULT_CPUS.to_string(),
+                pids_limit: DEFAULT_PIDS_LIMIT.to_string(),
+                dns_servers: DEFAULT_DNS_SERVERS.to_string(),
+                audit_log: DEFAULT_AUDIT_LOG.to_string(),
+                dry_run: false,
             });
 
             if !run_args.skip_version_check {
@@ -240,8 +265,51 @@ fn check_for_updates() {
     // Silently ignore errors in version checking to not disrupt normal usage
 }
 
-/// Sets up seccomp syscall filtering for the Docker container.
-/// Returns an optional `PathBuf` to keep the temp file alive if using the embedded profile.
+/// Sets up seccomp (secure computing mode) syscall filtering for the Docker container.
+///
+/// Seccomp is a Linux kernel feature that restricts which system calls a process can make.
+/// This provides defense-in-depth security by blocking dangerous syscalls like ptrace,
+/// kernel module loading, and mount operations at the kernel level.
+///
+/// # Arguments
+///
+/// * `docker_cmd` - Mutable reference to the Docker command being constructed
+/// * `seccomp_profile` - Optional seccomp profile specification:
+///   - `None` - Use the embedded default conservative profile (recommended)
+///   - `Some("none")` - Disable seccomp entirely (not recommended, for debugging only)
+///   - `Some("/path/to/profile.json")` - Use a custom seccomp profile
+///
+/// # Returns
+///
+/// * `Some(PathBuf)` - Path to the temporary file containing the embedded profile (keeps it alive)
+/// * `None` - If using a custom profile or seccomp is disabled
+///
+/// # Security
+///
+/// The default profile blocks ~40 dangerous syscalls including:
+/// - ptrace (process debugging)
+/// - mount/umount (filesystem manipulation)
+/// - init_module/delete_module (kernel module loading)
+/// - reboot (system reboot)
+/// - bpf (eBPF program loading)
+/// - keyctl (kernel keyring manipulation)
+///
+/// # Panics
+///
+/// Exits the process if a custom profile path is specified but the file doesn't exist.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::process::Command;
+/// let mut cmd = Command::new("docker");
+///
+/// // Use default profile
+/// let _temp = setup_seccomp(&mut cmd, None);
+///
+/// // Disable seccomp (not recommended)
+/// setup_seccomp(&mut cmd, Some("none"));
+/// ```
 fn setup_seccomp(docker_cmd: &mut Command, seccomp_profile: Option<&str>) -> Option<PathBuf> {
     match seccomp_profile {
         Some("none") => {
@@ -285,7 +353,41 @@ fn setup_seccomp(docker_cmd: &mut Command, seccomp_profile: Option<&str>) -> Opt
 }
 
 /// Validates user-supplied volumes for dangerous mounts that could enable container escape.
-/// Returns an error message if dangerous volumes are detected, None otherwise.
+///
+/// This function performs security checks on volume mount specifications to prevent:
+/// - Docker socket mounting (complete container escape)
+/// - Mounting critical system directories (/proc, /sys, /dev, /boot, /etc)
+///
+/// # Arguments
+///
+/// * `volumes` - Slice of volume mount specifications (e.g., "/host/path:/container/path:ro")
+///
+/// # Returns
+///
+/// * `Some(String)` - Error message describing the security risk if a dangerous volume is detected
+/// * `None` - All volumes are safe to mount
+///
+/// # Security
+///
+/// This is a critical security function that prevents privilege escalation and container escape.
+/// It blocks mounts that would allow an agent to:
+/// - Spawn new containers via Docker socket
+/// - Inspect or manipulate host processes via /proc
+/// - Access raw devices via /dev
+/// - Modify system configuration via /etc, /sys
+/// - Access boot files via /boot
+///
+/// # Examples
+///
+/// ```no_run
+/// // Safe volumes pass validation
+/// let safe = vec!["~/.ssh:/home/agent/.ssh:ro".to_string()];
+/// assert!(validate_volumes(&safe).is_none());
+///
+/// // Dangerous volumes are rejected
+/// let dangerous = vec!["/var/run/docker.sock:/var/run/docker.sock".to_string()];
+/// assert!(validate_volumes(&dangerous).is_some());
+/// ```
 fn validate_volumes(volumes: &[String]) -> Option<String> {
     for volume in volumes {
         let vol_lower = volume.to_lowercase();
@@ -323,7 +425,33 @@ fn validate_volumes(volumes: &[String]) -> Option<String> {
     None
 }
 
-/// Apply resource limits to the Docker command to prevent `DoS` attacks.
+/// Applies resource limits to the Docker command to prevent DoS attacks and resource exhaustion.
+///
+/// This function configures Docker's resource constraints to prevent a compromised agent from:
+/// - Consuming all available memory (memory bombs)
+/// - Spawning infinite processes (fork bombs)
+/// - Monopolizing CPU resources (cryptomining, compute-intensive attacks)
+///
+/// # Arguments
+///
+/// * `docker_cmd` - Mutable reference to the Docker command being constructed
+/// * `memory` - Memory limit (e.g., "4g", "512m") or "unlimited" to disable
+/// * `cpus` - CPU limit (e.g., "4", "0.5") or "unlimited" to disable
+/// * `pids_limit` - Maximum number of processes (e.g., "256") or "unlimited" to disable
+///
+/// # Security
+///
+/// Default limits (4GB RAM, 4 CPUs, 256 PIDs) are sufficient for normal AI agent operations
+/// while preventing resource-based attacks. Disabling limits is not recommended unless
+/// you trust the agent completely and understand the risks.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::process::Command;
+/// let mut cmd = Command::new("docker");
+/// apply_resource_limits(&mut cmd, "4g", "4", "256");
+/// ```
 fn apply_resource_limits(docker_cmd: &mut Command, memory: &str, cpus: &str, pids_limit: &str) {
     if memory.to_lowercase() == "unlimited" {
         println!("[RustyYOLO] ⚠️  Memory limit disabled");
@@ -347,7 +475,33 @@ fn apply_resource_limits(docker_cmd: &mut Command, memory: &str, cpus: &str, pid
     }
 }
 
-/// Configure DNS restrictions to prevent exfiltration attacks.
+/// Configures DNS server restrictions to prevent DNS tunneling and data exfiltration attacks.
+///
+/// This function restricts which DNS servers the container can query, preventing attacks where:
+/// - Data is exfiltrated via DNS queries to attacker-controlled servers
+/// - Commands are received via DNS TXT records (DNS tunneling)
+/// - Information is leaked through DNS query patterns
+///
+/// # Arguments
+///
+/// * `docker_cmd` - Mutable reference to the Docker command being constructed
+/// * `dns_servers` - Space-separated list of allowed DNS server IPs, or "any" to disable restrictions
+///
+/// # Security
+///
+/// Default DNS servers (Google 8.8.8.8/8.8.4.4 and Cloudflare 1.1.1.1/1.0.0.1) are public,
+/// well-known servers that are unlikely to be controlled by attackers. Restricting DNS
+/// prevents using arbitrary servers for data exfiltration.
+///
+/// Setting `dns_servers` to "any" disables this protection and is **not recommended**.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::process::Command;
+/// let mut cmd = Command::new("docker");
+/// configure_dns_restrictions(&mut cmd, "8.8.8.8 1.1.1.1");
+/// ```
 fn configure_dns_restrictions(docker_cmd: &mut Command, dns_servers: &str) {
     if dns_servers.to_lowercase() == "any" {
         println!("[RustyYOLO] ⚠️  DNS restrictions disabled - exfiltration risk!");
@@ -364,7 +518,33 @@ fn configure_dns_restrictions(docker_cmd: &mut Command, dns_servers: &str) {
     }
 }
 
-/// Configure audit logging level for security events.
+/// Configures audit logging level for security events in the container.
+///
+/// This function enables logging of security-relevant events for forensics and monitoring:
+/// - Blocked network connections (helps diagnose connectivity issues)
+/// - Allowed network connections (helps understand agent behavior)
+/// - Syscall denials (helps debug seccomp issues)
+/// - Resource usage patterns (helps detect anomalies)
+///
+/// # Arguments
+///
+/// * `docker_cmd` - Mutable reference to the Docker command being constructed
+/// * `audit_log` - Audit logging level:
+///   - "none" - No audit logging (default, minimal output)
+///   - "basic" - Log blocked events only (security violations)
+///   - "verbose" - Log all security events (allowed + blocked)
+///
+/// # Usage
+///
+/// Logs are accessible via `docker logs <container-id>` after the container exits.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::process::Command;
+/// let mut cmd = Command::new("docker");
+/// configure_audit_logging(&mut cmd, "basic");
+/// ```
 fn configure_audit_logging(docker_cmd: &mut Command, audit_log: &str) {
     let audit_level = audit_log.to_lowercase();
     match audit_level.as_str() {
@@ -449,7 +629,12 @@ fn run_agent(args: RunArgs) {
     let _seccomp_temp_file = setup_seccomp(&mut docker_cmd, args.seccomp_profile.as_deref());
 
     // --- 3. Network Isolation ---
+    // Drop all capabilities and only add NET_ADMIN (needed for iptables)
+    docker_cmd.arg("--cap-drop=ALL");
     docker_cmd.arg("--cap-add=NET_ADMIN");
+
+    // Prevent privilege escalation via setuid/setgid binaries
+    docker_cmd.arg("--security-opt").arg("no-new-privileges");
 
     // Disable IPv6 to prevent firewall bypass (iptables only configures IPv4)
     docker_cmd.arg("--sysctl").arg("net.ipv6.conf.all.disable_ipv6=1");
@@ -468,11 +653,10 @@ fn run_agent(args: RunArgs) {
 
     // If using Claude, ensure Anthropic API domains are included
     if args.agent == "claude" {
-        let anthropic_domains = "api.anthropic.com anthropic.com";
         if trusted_domains.is_empty() {
-            trusted_domains = anthropic_domains.to_string();
+            trusted_domains = ANTHROPIC_DOMAINS.to_string();
         } else if !trusted_domains.contains("anthropic.com") {
-            trusted_domains = format!("{trusted_domains} {anthropic_domains}");
+            trusted_domains = format!("{trusted_domains} {ANTHROPIC_DOMAINS}");
         }
     }
 
@@ -546,6 +730,17 @@ fn run_agent(args: RunArgs) {
     println!("[RustyYOLO] Starting secure container...");
     println!("[RustyYOLO] Full command: {docker_cmd:?}");
 
+    // Handle dry-run mode
+    if args.dry_run {
+        println!("[RustyYOLO] Dry run mode - not executing command");
+        println!("[RustyYOLO] Command would be:");
+        // Print a more readable command format
+        let cmd_parts: Vec<String> =
+            docker_cmd.get_args().map(|s| s.to_string_lossy().to_string()).collect();
+        println!("docker {}", cmd_parts.join(" "));
+        return;
+    }
+
     let mut child = docker_cmd
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
@@ -557,5 +752,133 @@ fn run_agent(args: RunArgs) {
     if !status.success() {
         eprintln!("[RustyYOLO] Container exited with an error.");
         std::process::exit(status.code().unwrap_or(1));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Tests for validate_volumes function
+    #[test]
+    fn test_validate_volumes_safe_mounts() {
+        // Safe volume mounts should pass
+        let safe_volumes = vec![
+            "~/.ssh:/home/agent/.ssh:ro".to_string(),
+            "~/.gitconfig:/home/agent/.gitconfig:ro".to_string(),
+            "/home/user/project:/app".to_string(),
+            "/tmp/data:/data:ro".to_string(),
+        ];
+        assert!(validate_volumes(&safe_volumes).is_none());
+    }
+
+    #[test]
+    fn test_validate_volumes_docker_socket() {
+        // Docker socket mounts should be blocked
+        let dangerous = vec!["/var/run/docker.sock:/var/run/docker.sock".to_string()];
+        let result = validate_volumes(&dangerous);
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("Docker socket"));
+    }
+
+    #[test]
+    fn test_validate_volumes_docker_socket_uppercase() {
+        // Case-insensitive check for docker.sock
+        let dangerous = vec!["/var/run/DOCKER.SOCK:/var/run/docker.sock".to_string()];
+        let result = validate_volumes(&dangerous);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_validate_volumes_proc_mount() {
+        // /proc mounts should be blocked
+        let dangerous = vec!["/proc:/proc".to_string()];
+        let result = validate_volumes(&dangerous);
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("/proc"));
+    }
+
+    #[test]
+    fn test_validate_volumes_sys_mount() {
+        // /sys mounts should be blocked
+        let dangerous = vec!["/sys:/sys:ro".to_string()];
+        let result = validate_volumes(&dangerous);
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("/sys"));
+    }
+
+    #[test]
+    fn test_validate_volumes_dev_mount() {
+        // /dev mounts should be blocked
+        let dangerous = vec!["/dev:/dev".to_string()];
+        let result = validate_volumes(&dangerous);
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("/dev"));
+    }
+
+    #[test]
+    fn test_validate_volumes_boot_mount() {
+        // /boot mounts should be blocked
+        let dangerous = vec!["/boot:/boot".to_string()];
+        let result = validate_volumes(&dangerous);
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("/boot"));
+    }
+
+    #[test]
+    fn test_validate_volumes_etc_mount() {
+        // /etc mounts should be blocked
+        let dangerous = vec!["/etc:/etc:ro".to_string()];
+        let result = validate_volumes(&dangerous);
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("/etc"));
+    }
+
+    #[test]
+    fn test_validate_volumes_proc_subdirectory_allowed() {
+        // User projects with "proc" in the name should be allowed
+        let safe = vec!["/home/user/myproc:/myproc".to_string()];
+        assert!(validate_volumes(&safe).is_none());
+    }
+
+    #[test]
+    fn test_validate_volumes_mixed_safe_and_dangerous() {
+        // If any volume is dangerous, should fail
+        let mixed = vec!["~/.ssh:/home/agent/.ssh:ro".to_string(), "/proc:/proc".to_string()];
+        let result = validate_volumes(&mixed);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_validate_volumes_empty_list() {
+        // Empty volume list should pass
+        let empty: Vec<String> = vec![];
+        assert!(validate_volumes(&empty).is_none());
+    }
+
+    // Tests for setup_seccomp function
+    #[test]
+    fn test_setup_seccomp_none() {
+        // When seccomp is explicitly disabled
+        let mut cmd = Command::new("docker");
+        let result = setup_seccomp(&mut cmd, Some("none"));
+        assert!(result.is_none());
+        // The command should have --security-opt seccomp=unconfined
+        let args: Vec<String> = cmd.get_args().map(|s| s.to_string_lossy().to_string()).collect();
+        assert!(args.contains(&"--security-opt".to_string()));
+        assert!(args.contains(&"seccomp=unconfined".to_string()));
+    }
+
+    #[test]
+    fn test_setup_seccomp_default() {
+        // When using the default embedded profile
+        let mut cmd = Command::new("docker");
+        let result = setup_seccomp(&mut cmd, None);
+        assert!(result.is_some());
+        // The command should have --security-opt seccomp=<path>
+        let args: Vec<String> = cmd.get_args().map(|s| s.to_string_lossy().to_string()).collect();
+        assert!(args.contains(&"--security-opt".to_string()));
+        // Should have a seccomp profile path
+        assert!(args.iter().any(|arg| arg.starts_with("seccomp=")));
     }
 }
