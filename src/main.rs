@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
+mod config;
 mod update;
 
 // Embed the default seccomp profile at compile time
@@ -163,7 +164,7 @@ fn main() {
         }
         None => {
             // Run mode - check for updates first unless skipped
-            let run_args = cli.run_args.unwrap_or_else(|| RunArgs {
+            let mut run_args = cli.run_args.unwrap_or_else(|| RunArgs {
                 agent: DEFAULT_AGENT.to_string(),
                 volumes: Vec::new(),
                 envs: Vec::new(),
@@ -181,6 +182,12 @@ fn main() {
                 audit_log: DEFAULT_AUDIT_LOG.to_string(),
                 dry_run: false,
             });
+
+            // Try to load configuration file from current directory
+            if let Ok(Some(config)) = config::Config::try_load_from_current_dir() {
+                println!("[RustyYOLO] Loaded configuration from .rustyolo.toml");
+                merge_config_with_args(&mut run_args, config);
+            }
 
             if !run_args.skip_version_check {
                 check_for_updates();
@@ -253,6 +260,94 @@ fn handle_update(binary_only: bool, image_only: bool, yes: bool) {
     }
 }
 
+/// Merges configuration file settings with command-line arguments.
+///
+/// CLI arguments always take precedence over config file settings.
+/// This function only applies config values if the CLI didn't provide them.
+///
+/// # Arguments
+///
+/// * `args` - Mutable reference to parsed CLI arguments
+/// * `config` - Loaded configuration from .rustyolo.toml
+fn merge_config_with_args(args: &mut RunArgs, config: config::Config) {
+    // Merge default section
+    if args.allow_domains.is_none() {
+        args.allow_domains = config.default.allow_domains;
+    }
+
+    // Merge volumes - only if CLI didn't provide any
+    if args.volumes.is_empty() {
+        if let Some(config_volumes) = config.default.volumes {
+            args.volumes = config_volumes;
+        }
+    }
+
+    // Merge environment variables - only if CLI didn't provide any
+    if args.envs.is_empty() {
+        if let Some(config_envs) = config.default.env {
+            args.envs = config_envs;
+        }
+    }
+
+    if args.auth_home.is_none() {
+        args.auth_home = config.default.auth_home;
+    }
+
+    // Only override image if it's still the default
+    if args.image == DEFAULT_IMAGE {
+        if let Some(config_image) = config.default.image {
+            args.image = config_image;
+        }
+    }
+
+    // Only override agent if it's still the default
+    if args.agent == DEFAULT_AGENT {
+        if let Some(config_agent) = config.default.agent {
+            args.agent = config_agent;
+        }
+    }
+
+    // Merge resources section - only if still using defaults
+    if args.memory == DEFAULT_MEMORY {
+        if let Some(config_memory) = config.resources.memory {
+            args.memory = config_memory;
+        }
+    }
+
+    if args.cpus == DEFAULT_CPUS {
+        if let Some(config_cpus) = config.resources.cpus {
+            args.cpus = config_cpus;
+        }
+    }
+
+    if args.pids_limit == DEFAULT_PIDS_LIMIT {
+        if let Some(config_pids_limit) = config.resources.pids_limit {
+            args.pids_limit = config_pids_limit;
+        }
+    }
+
+    // Merge security section
+    if args.seccomp_profile.is_none() {
+        args.seccomp_profile = config.security.seccomp_profile;
+    }
+
+    if args.dns_servers == DEFAULT_DNS_SERVERS {
+        if let Some(config_dns_servers) = config.security.dns_servers {
+            args.dns_servers = config_dns_servers;
+        }
+    }
+
+    if args.audit_log == DEFAULT_AUDIT_LOG {
+        if let Some(config_audit_log) = config.security.audit_log {
+            args.audit_log = config_audit_log;
+        }
+    }
+
+    if args.inject_message.is_none() {
+        args.inject_message = config.security.inject_message;
+    }
+}
+
 fn check_for_updates() {
     if let Ok(latest_version) = update::get_latest_version() {
         let current_version = env!("CARGO_PKG_VERSION");
@@ -289,7 +384,7 @@ fn check_for_updates() {
 /// The default profile blocks ~40 dangerous syscalls including:
 /// - ptrace (process debugging)
 /// - mount/umount (filesystem manipulation)
-/// - init_module/delete_module (kernel module loading)
+/// - `init_module`/`delete_module` (kernel module loading)
 /// - reboot (system reboot)
 /// - bpf (eBPF program loading)
 /// - keyctl (kernel keyring manipulation)
@@ -425,7 +520,7 @@ fn validate_volumes(volumes: &[String]) -> Option<String> {
     None
 }
 
-/// Applies resource limits to the Docker command to prevent DoS attacks and resource exhaustion.
+/// Applies resource limits to the Docker command to prevent `DoS` attacks and resource exhaustion.
 ///
 /// This function configures Docker's resource constraints to prevent a compromised agent from:
 /// - Consuming all available memory (memory bombs)

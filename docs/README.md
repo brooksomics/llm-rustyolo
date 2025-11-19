@@ -16,6 +16,7 @@ Welcome to the llm-rustyolo documentation! This directory contains comprehensive
 ## 📖 Guides
 
 - **[Installation](guides/installation.md)** - Step-by-step installation for all platforms
+- **[Configuration](guides/configuration.md)** - Project-level configuration files (`.rustyolo.toml`)
 - **[Hooks](guides/hooks.md)** - Pre-commit hooks and secret scanning setup
 
 ## 🛠️ Development

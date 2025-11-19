@@ -1,0 +1,157 @@
+# Example RustyYOLO Configuration File
+#
+# Copy this file to `.rustyolo.toml` in your project directory and customize as needed.
+# All settings are optional. CLI arguments always override config file settings.
+#
+# Note: .rustyolo.toml is gitignored by default, so project-specific settings
+# won't be committed to version control.
+
+# ============================================================================
+# Default Configuration
+# ============================================================================
+[default]
+
+# Space-separated list of domains to allow outbound network traffic to.
+# All other traffic (except DNS) will be blocked by the iptables firewall.
+#
+# Example: Common domains for Python/JavaScript development
+allow_domains = "github.com api.github.com pypi.org files.pythonhosted.org npmjs.org registry.npmjs.org"
+
+# Additional volumes to mount into the container.
+# Format: ["host_path:container_path[:options]", ...]
+# Options: ro (read-only), rw (read-write)
+#
+# Example: Mount SSH keys and Git config as read-only
+volumes = [
+    "~/.ssh:/home/agent/.ssh:ro",
+    "~/.gitconfig:/home/agent/.gitconfig:ro"
+]
+
+# Environment variables to pass to the container.
+# Format: ["KEY=value", ...]
+#
+# Example: Pass custom environment variables
+# env = [
+#     "MY_VAR=value",
+#     "ANOTHER_VAR=another_value"
+# ]
+
+# Persistent authentication directory.
+# This directory will be mounted to store Claude Code credentials and history.
+#
+# Default: ~/.config/rustyolo
+auth_home = "~/.config/rustyolo"
+
+# Docker image to use.
+# Default: ghcr.io/brooksomics/llm-rustyolo:latest
+# image = "ghcr.io/brooksomics/llm-rustyolo:latest"
+
+# Agent to run by default.
+# Default: claude
+# agent = "claude"
+
+# ============================================================================
+# Resource Limits
+# ============================================================================
+[resources]
+
+# Maximum memory the container can use.
+# Prevents memory exhaustion attacks and runaway processes.
+#
+# Default: 4g
+# Examples: "2g", "512m", "8g", "unlimited"
+memory = "4g"
+
+# Number of CPUs the container can use.
+# Prevents CPU monopolization and cryptomining attacks.
+#
+# Default: 4
+# Examples: "2", "0.5", "8", "unlimited"
+cpus = "4"
+
+# Maximum number of processes the container can spawn.
+# Prevents fork bomb attacks.
+#
+# Default: 256
+# Examples: "128", "512", "unlimited"
+pids_limit = "256"
+
+# ============================================================================
+# Security Configuration
+# ============================================================================
+[security]
+
+# Path to a custom seccomp profile, or "none" to disable seccomp.
+# Seccomp restricts which system calls the agent can make, providing
+# defense-in-depth security against privilege escalation.
+#
+# Default: Uses embedded conservative profile
+# Options:
+#   - "./seccomp/seccomp-restrictive.json" (maximum security)
+#   - "none" (disable seccomp - NOT RECOMMENDED)
+# seccomp_profile = "./seccomp/seccomp-restrictive.json"
+
+# Space-separated list of DNS servers to allow.
+# Restricts DNS queries to specific servers to prevent DNS exfiltration.
+#
+# Default: "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1" (Google and Cloudflare)
+# Use "any" to disable DNS restrictions (NOT RECOMMENDED)
+dns_servers = "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1"
+
+# Audit logging level for security events.
+# Logs are accessible via 'docker logs <container-id>'
+#
+# Options:
+#   - "none" (default, no logging)
+#   - "basic" (log blocked connections only)
+#   - "verbose" (log all security events)
+audit_log = "none"
+
+# Custom message to inject into the agent's system prompt.
+# Informs the agent about sandbox limitations.
+#
+# Use "none" to disable the default sandbox message.
+# inject_message = "You are operating in a restricted sandbox environment."
+
+# ============================================================================
+# Example Configurations for Different Use Cases
+# ============================================================================
+
+# Example 1: Minimal Configuration (Claude Code only)
+# Uncomment to use:
+# [default]
+# allow_domains = "api.anthropic.com anthropic.com"
+
+# Example 2: Python Development
+# Uncomment to use:
+# [default]
+# allow_domains = "github.com api.github.com pypi.org files.pythonhosted.org"
+# volumes = ["~/.ssh:/home/agent/.ssh:ro", "~/.gitconfig:/home/agent/.gitconfig:ro"]
+
+# Example 3: JavaScript/Node.js Development
+# Uncomment to use:
+# [default]
+# allow_domains = "github.com api.github.com npmjs.org registry.npmjs.org"
+# volumes = ["~/.ssh:/home/agent/.ssh:ro", "~/.gitconfig:/home/agent/.gitconfig:ro", "~/.npmrc:/home/agent/.npmrc:ro"]
+
+# Example 4: Maximum Security
+# Uncomment to use:
+# [default]
+# allow_domains = "api.anthropic.com anthropic.com"
+# [resources]
+# memory = "2g"
+# cpus = "2"
+# pids_limit = "128"
+# [security]
+# seccomp_profile = "./seccomp/seccomp-restrictive.json"
+# audit_log = "verbose"
+
+# Example 5: Relaxed Development Environment
+# Uncomment to use (NOT recommended for untrusted code):
+# [default]
+# allow_domains = "github.com api.github.com pypi.org npmjs.org rubygems.org"
+# volumes = ["~/.ssh:/home/agent/.ssh:ro", "~/.gitconfig:/home/agent/.gitconfig:ro"]
+# [resources]
+# memory = "8g"
+# cpus = "8"
+# pids_limit = "512"

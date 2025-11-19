@@ -107,6 +107,37 @@ You can pass any command and arguments after the agent name. `rustyolo` is smart
 rustyolo claude --help
 ```
 
+## Configuration Files
+
+Tired of typing long commands? Create a `.rustyolo.toml` file in your project directory:
+
+```toml
+[default]
+allow_domains = "github.com pypi.org npmjs.org"
+volumes = ["~/.ssh:/home/agent/.ssh:ro", "~/.gitconfig:/home/agent/.gitconfig:ro"]
+auth_home = "~/.config/rustyolo"
+
+[resources]
+memory = "8g"
+cpus = "6"
+
+[security]
+audit_log = "basic"
+```
+
+Then just run:
+```bash
+rustyolo claude
+```
+
+**Features:**
+- ✅ Automatic loading from current directory
+- ✅ CLI arguments override config file settings
+- ✅ Gitignored by default (project-specific settings)
+- ✅ Full validation with helpful error messages
+
+See [docs/guides/configuration.md](./docs/guides/configuration.md) for detailed configuration guide and examples.
+
 ## Keeping Up-to-Date
 
 ### Homebrew Installation
@@ -198,6 +229,7 @@ Options:
 ## Documentation
 
 - [docs/guides/installation.md](./docs/guides/installation.md) - Detailed installation instructions
+- [docs/guides/configuration.md](./docs/guides/configuration.md) - Configuration file guide
 - [CLAUDE.md](./CLAUDE.md) - Complete documentation on how it works, security considerations, and advanced usage
 - [docs/security/security-policy.md](./docs/security/security-policy.md) - Secret scanning and security protection setup
 - [docs/security/seccomp.md](./docs/security/seccomp.md) - Seccomp profiles and syscall filtering
