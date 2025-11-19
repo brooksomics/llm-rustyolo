@@ -36,13 +36,9 @@ license-files = [
 db-path = "~/.cargo/advisory-db"
 # The url(s) of the advisory databases to use
 db-urls = ["https://github.com/rustsec/advisory-db"]
-# Lint level for security vulnerabilities
+# Fail on security vulnerabilities
 vulnerability = "deny"
-# Lint level for unmaintained crates
-unmaintained = "warn"
-# Lint level for crates with security notices
-notice = "warn"
-# Allow specific advisories
+# Ignore specific advisories
 ignore = [
     # number_prefix is unmaintained but it's a transitive dependency via self_update -> indicatif
     # The crate is simple and stable, and we don't directly use it
