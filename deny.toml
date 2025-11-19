@@ -3,9 +3,8 @@
 
 # License configuration
 [licenses]
-# We are using the MIT license
-unlicensed = "deny"
-copyleft = "deny"
+# Version 2: All licenses are denied unless explicitly in the allow list
+version = 2
 
 # Allow these licenses
 allow = [
@@ -18,9 +17,6 @@ allow = [
     "Unicode-3.0",  # Required by ICU crates (icu_collections, etc.) via reqwest
 ]
 
-# Deny these licenses
-deny = []
-
 # Configuration for crates that should be ignored
 [[licenses.clarify]]
 name = "ring"
@@ -32,12 +28,12 @@ license-files = [
 
 # Advisories configuration
 [advisories]
+# Version 2: All advisory types default to deny
+version = 2
 # The path where the advisory database is cloned/fetched into
 db-path = "~/.cargo/advisory-db"
 # The url(s) of the advisory databases to use
 db-urls = ["https://github.com/rustsec/advisory-db"]
-# Fail on security vulnerabilities
-vulnerability = "deny"
 # Ignore specific advisories
 ignore = [
     # number_prefix is unmaintained but it's a transitive dependency via self_update -> indicatif
