@@ -27,56 +27,70 @@ rustyolo gemini
 
 The API key will be stored in `~/.config/rustyolo` (or your custom `--auth-home` directory) and persisted across sessions.
 
-## Alternative: Google OAuth Login (Headless Workaround)
+## Alternative: Google OAuth Login (Pre-Authentication Workflow)
 
-If you prefer to use Google OAuth instead of an API key, the Gemini CLI has a known limitation with headless environments ([Issue #1696](https://github.com/google-gemini/gemini-cli/issues/1696)). Here's a workaround using debug mode:
+If you prefer to use Google OAuth instead of an API key, you can authenticate once on your host machine and then mount the OAuth credentials into the rustyolo container.
 
-### Step 1: Run with Debug Flag
+### One-Time Setup
+
+**Step 1: Install Gemini CLI on your host machine**
+
+Choose one installation method:
 
 ```bash
-rustyolo gemini --debug
+# Option A: Homebrew (macOS/Linux)
+brew install gemini-cli
+
+# Option B: npm (any platform)
+npm install -g @google/gemini-cli
 ```
 
-Select "1. Login with Google" and watch the debug output for an authentication URL like:
+**Step 2: Authenticate on your host**
 
-```
-https://accounts.google.com/o/oauth2/v2/auth?client_id=...
-```
+Run Gemini CLI **outside** of rustyolo (where your browser works):
 
-### Step 2: Complete OAuth in Your Host Browser
-
-1. Copy the full OAuth URL from the debug output
-2. Open it in your **host machine's browser** (not in the container)
-3. Complete the Google login and authorization
-4. The browser will redirect to `http://localhost:PORT/callback?code=...`
-
-### Step 3: OAuth Callback Handling
-
-The challenge is that the OAuth callback expects a local server running in the container, but your browser is on the host.
-
-**Option A: Port Forwarding (If you have SSH access)**
 ```bash
-# On your host, forward the OAuth callback port (usually 8085 or similar)
-ssh -L 8085:localhost:8085 user@container-host
-
-# Then run rustyolo gemini with the forwarded port accessible
+gemini
+# Select: "1. Login with Google"
+# Browser opens automatically
+# Complete the OAuth flow
+# Credentials are saved to ~/.gemini/oauth_creds.json
 ```
 
-**Option B: Manual Token Exchange (Advanced)**
-This requires intercepting the OAuth code and manually exchanging it for tokens. Not recommended unless you're familiar with OAuth flows.
+**Step 3: Mount the OAuth credentials with rustyolo**
 
-### Why This Is Complex
+```bash
+rustyolo -v ~/.gemini:/home/agent/.gemini gemini
+```
 
-The sandboxed Docker container:
-- Cannot open a browser (headless environment)
-- Cannot easily access the host's browser for OAuth callbacks
-- Has strict network isolation that blocks most Google domains by default
+**Important:** Do NOT use `:ro` (read-only) on the mount - Gemini CLI needs write access to create temporary files for logging and chat state.
+
+### Make it Easier with Config File
+
+Add this to `.rustyolo.toml` in your project:
+
+```toml
+[default]
+# Mount Gemini OAuth credentials (read-write required)
+volumes = [
+    "~/.gemini:/home/agent/.gemini"
+]
+```
+
+Then just run:
+```bash
+rustyolo gemini  # OAuth credentials automatically available!
+```
+
+### How It Works
 
 The rustyolo CLI automatically whitelists these Google domains when using Gemini:
 - `generativelanguage.googleapis.com` (API endpoint)
 - `accounts.google.com` (OAuth login)
 - `oauth2.googleapis.com` (Token exchange)
 - `www.googleapis.com` (General Google APIs)
+
+The container uses your existing OAuth tokens from `~/.gemini/oauth_creds.json`, so no browser is needed inside the container.
 
 ## Persistent Authentication
 

@@ -226,13 +226,28 @@ rustyolo gemini
 
 The Gemini API domain (`generativelanguage.googleapis.com`) and OAuth domains are automatically whitelisted.
 
-**Authentication:**
-Gemini CLI supports three authentication methods:
-1. **API Key (Recommended for sandboxed environments)** - Get one at https://aistudio.google.com/app/apikey
-2. **Google OAuth Login** - Requires special handling in headless environments
-3. **Vertex AI** - For Google Cloud Platform users
+**Authentication Methods:**
 
-See the [Gemini Authentication Guide](docs/guides/gemini-authentication.md) for detailed setup instructions, especially for OAuth login in sandboxed environments.
+**Option 1: API Key (Simplest)**
+```bash
+rustyolo gemini
+# Select "2. Use Gemini API Key"
+# Get key at: https://aistudio.google.com/app/apikey
+```
+
+**Option 2: Google OAuth (One-time setup)**
+```bash
+# 1. Install Gemini CLI on your host
+brew install gemini-cli  # or: npm install -g @google/gemini-cli
+
+# 2. Authenticate once on your host (browser opens)
+gemini  # Select "1. Login with Google"
+
+# 3. Mount OAuth credentials with rustyolo
+rustyolo -v ~/.gemini:/home/agent/.gemini gemini
+```
+
+See the [Gemini Authentication Guide](docs/guides/gemini-authentication.md) for detailed setup instructions and troubleshooting.
 
 ### Running Custom Commands
 
