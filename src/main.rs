@@ -21,6 +21,9 @@ const DEFAULT_DNS_SERVERS: &str = "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1";
 // Anthropic API domains (automatically added for Claude agent)
 const ANTHROPIC_DOMAINS: &str = "api.anthropic.com anthropic.com";
 
+// Google Gemini API domains (automatically added for Gemini agent)
+const GEMINI_DOMAINS: &str = "generativelanguage.googleapis.com";
+
 // Default Docker image
 const DEFAULT_IMAGE: &str = "ghcr.io/brooksomics/llm-rustyolo:latest";
 
@@ -84,6 +87,7 @@ struct RunArgs {
     /// All other traffic (except DNS) will be blocked.
     /// Example: --allow-domains "github.com pypi.org npmjs.com"
     /// Note: Anthropic domains are automatically added when using Claude.
+    /// Google Gemini API domains are automatically added when using Gemini.
     #[arg(long, env = "TRUSTED_DOMAINS")]
     allow_domains: Option<String>,
 
@@ -758,6 +762,15 @@ fn run_agent(args: RunArgs) {
             trusted_domains = ANTHROPIC_DOMAINS.to_string();
         } else if !trusted_domains.contains("anthropic.com") {
             trusted_domains = format!("{trusted_domains} {ANTHROPIC_DOMAINS}");
+        }
+    }
+
+    // If using Gemini, ensure Google Gemini API domains are included
+    if args.agent == "gemini" {
+        if trusted_domains.is_empty() {
+            trusted_domains = GEMINI_DOMAINS.to_string();
+        } else if !trusted_domains.contains("generativelanguage.googleapis.com") {
+            trusted_domains = format!("{trusted_domains} {GEMINI_DOMAINS}");
         }
     }
 

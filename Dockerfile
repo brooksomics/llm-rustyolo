@@ -13,7 +13,7 @@ RUN apt-get update && \
 # Install AI agents
 # Claude Code is the primary agent
 # Add other AI CLIs as they become available (e.g., aider, cursor-cli, etc.)
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @anthropic-ai/claude-code @google/gemini-cli
 
 # Create the non-root user that the agent will run as.
 # We create it with a placeholder UID/GID that will be changed at runtime.
