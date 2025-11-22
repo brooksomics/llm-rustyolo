@@ -22,7 +22,8 @@ const DEFAULT_DNS_SERVERS: &str = "8.8.8.8 8.8.4.4 1.1.1.1 1.0.0.1";
 const ANTHROPIC_DOMAINS: &str = "api.anthropic.com anthropic.com";
 
 // Google Gemini API domains (automatically added for Gemini agent)
-const GEMINI_DOMAINS: &str = "generativelanguage.googleapis.com";
+// Includes API endpoint + OAuth domains for Google login
+const GEMINI_DOMAINS: &str = "generativelanguage.googleapis.com accounts.google.com oauth2.googleapis.com www.googleapis.com";
 
 // Default Docker image
 const DEFAULT_IMAGE: &str = "ghcr.io/brooksomics/llm-rustyolo:latest";
@@ -765,11 +766,11 @@ fn run_agent(args: RunArgs) {
         }
     }
 
-    // If using Gemini, ensure Google Gemini API domains are included
+    // If using Gemini, ensure Google Gemini API and OAuth domains are included
     if args.agent == "gemini" {
         if trusted_domains.is_empty() {
             trusted_domains = GEMINI_DOMAINS.to_string();
-        } else if !trusted_domains.contains("generativelanguage.googleapis.com") {
+        } else if !trusted_domains.contains("googleapis.com") {
             trusted_domains = format!("{trusted_domains} {GEMINI_DOMAINS}");
         }
     }

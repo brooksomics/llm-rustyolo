@@ -87,7 +87,7 @@ docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 The Docker image includes:
 - Official Node.js base image
 - iptables, dnsutils, and gosu
-- Claude Code (and other agents as they become available)
+- Claude Code and Google Gemini CLI
 - A non-root `agent` user
 - The security entrypoint script
 
@@ -215,6 +215,24 @@ rustyolo \
 ```
 
 This completely blocks all network traffic except DNS.
+
+### Running Google Gemini
+
+The Docker image also includes Google's Gemini CLI:
+
+```bash
+rustyolo gemini
+```
+
+The Gemini API domain (`generativelanguage.googleapis.com`) and OAuth domains are automatically whitelisted.
+
+**Authentication:**
+Gemini CLI supports three authentication methods:
+1. **API Key (Recommended for sandboxed environments)** - Get one at https://aistudio.google.com/app/apikey
+2. **Google OAuth Login** - Requires special handling in headless environments
+3. **Vertex AI** - For Google Cloud Platform users
+
+See the [Gemini Authentication Guide](docs/guides/gemini-authentication.md) for detailed setup instructions, especially for OAuth login in sandboxed environments.
 
 ### Running Custom Commands
 
