@@ -5,6 +5,31 @@ All notable changes to rustyolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-01-13
+
+### Changed
+- **Dependency updates** ([#28](https://github.com/brooksomics/llm-rustyolo/pull/28), [#27](https://github.com/brooksomics/llm-rustyolo/pull/27), [#26](https://github.com/brooksomics/llm-rustyolo/pull/26), [#25](https://github.com/brooksomics/llm-rustyolo/pull/25), [#24](https://github.com/brooksomics/llm-rustyolo/pull/24), [#22](https://github.com/brooksomics/llm-rustyolo/pull/22), [#21](https://github.com/brooksomics/llm-rustyolo/pull/21), [#20](https://github.com/brooksomics/llm-rustyolo/pull/20), [#19](https://github.com/brooksomics/llm-rustyolo/pull/19))
+  - Updated `reqwest` from 0.12 to 0.13 for improved HTTP client performance
+  - Updated `self_update` to 0.42 for better auto-update functionality
+  - Updated `dirs` to 6.0.0 for improved directory path handling
+  - Updated `toml` to 0.9 for configuration parsing
+  - Updated GitHub Actions workflows:
+    - `actions/cache` to v5
+    - `actions/checkout` to v6
+    - `actions/setup-python` to v6
+    - `docker/build-push-action` to v6
+  - Updated Docker base image to `node:25-slim`
+
+### Fixed
+- **License compliance** ([#30](https://github.com/brooksomics/llm-rustyolo/pull/30), [#29](https://github.com/brooksomics/llm-rustyolo/pull/29))
+  - Added OpenSSL license to cargo-deny allowlist
+  - Added ISC and CDLA-Permissive-2.0 licenses to cargo-deny allowlist
+  - Resolved cargo-deny license validation errors for dependency chain
+
+### Security
+- Updated dependencies include security patches and improvements
+- Maintained strict license compliance via cargo-deny
+
 ## [0.5.0] - 2025-11-19
 
 ### Added
@@ -241,6 +266,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[0.5.1]: https://github.com/brooksomics/llm-rustyolo/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/brooksomics/llm-rustyolo/compare/v0.3.0...v0.3.1
