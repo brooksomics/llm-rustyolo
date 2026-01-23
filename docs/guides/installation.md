@@ -177,7 +177,7 @@ If you need to customize the image:
 docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
-This will take a few minutes as it downloads the Node.js base image and installs Claude Code.
+This will take a few minutes as it downloads the base image and installs Claude Code via the native installer.
 
 ## Verification
 
@@ -233,14 +233,14 @@ sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-### Docker build fails with "npm install" errors
+### Docker build fails with installer errors
 
 Try pulling the pre-built image instead:
 ```bash
 docker pull ghcr.io/brooksomics/llm-rustyolo:latest
 ```
 
-If building locally, try:
+If building locally, ensure you have internet connectivity and try:
 ```bash
 docker build --no-cache -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```

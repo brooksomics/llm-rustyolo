@@ -5,6 +5,20 @@ All notable changes to rustyolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-01-23
+
+### Changed
+- **Docker image: Switched from npm to native installer for Claude Code**
+  - Replaced `node:25-slim` base image with `debian:bookworm-slim` (smaller image, no Node.js dependency)
+  - Claude Code is now installed via the official native installer (`curl -fsSL https://claude.ai/install.sh | bash`)
+  - This follows Anthropic's deprecation of npm installation in favor of the native installer
+  - Benefits: smaller image size, no Node.js version compatibility issues, official supported installation method
+
+### Documentation
+- Updated all documentation to reflect native installer approach
+- Removed references to npm and Node.js dependencies
+- Updated "Adding New Agents" section to recommend native installers
+
 ## [0.5.1] - 2026-01-13
 
 ### Changed
@@ -266,6 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[0.6.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/brooksomics/llm-rustyolo/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/brooksomics/llm-rustyolo/compare/v0.3.1...v0.4.0

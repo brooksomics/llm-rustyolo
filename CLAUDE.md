@@ -85,9 +85,9 @@ docker build -t ghcr.io/brooksomics/llm-rustyolo:latest .
 ```
 
 The Docker image includes:
-- Official Node.js base image
+- Debian slim base image (no Node.js required)
 - iptables, dnsutils, and gosu
-- Claude Code (and other agents as they become available)
+- Claude Code installed via native installer
 - A non-root `agent` user
 - The security entrypoint script
 
@@ -525,9 +525,14 @@ docker logs <container-id> | grep AUDIT-BLOCK
 
 To add support for other AI agents:
 
-1. Update the Dockerfile to install the agent:
+1. Update the Dockerfile to install the agent. Prefer native installers when available:
 ```dockerfile
-RUN npm install -g <package-name>
+# Example: native installer (preferred)
+RUN curl -fsSL https://example.com/install.sh | bash && \
+    mv /root/.local/bin/agent /usr/local/bin/agent
+
+# Example: package manager fallback
+RUN apt-get update && apt-get install -y <package-name>
 ```
 
 2. Update `src/main.rs` to add default danger flags:
