@@ -21,6 +21,12 @@ RUN curl -fsSL https://claude.ai/install.sh | bash && \
     rm -rf /root/.local && \
     claude --version
 
+# Install uv (Python package manager) - provides uvx for running MCP servers
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    cp -L /root/.local/bin/uv /usr/local/bin/uv && \
+    cp -L /root/.local/bin/uvx /usr/local/bin/uvx && \
+    rm -rf /root/.local/share/uv
+
 # Create the non-root user that the agent will run as.
 # We create it with a placeholder UID/GID that will be changed at runtime.
 # Use a high UID to avoid conflicts with existing users in the base image.
@@ -30,6 +36,18 @@ RUN useradd --uid 9001 --create-home --shell /bin/bash agent && \
     mkdir -p /home/agent/.local/bin && \
     ln -s /usr/local/bin/claude /home/agent/.local/bin/claude && \
     chown -R agent:agent /home/agent/.local
+
+# Pre-install code-index-mcp MCP server for code indexing/search
+# Install as agent user so the uv cache is in the right location
+USER agent
+WORKDIR /home/agent
+RUN uv tool install code-index-mcp
+USER root
+
+# Configure Claude Code MCP servers
+RUN echo '{"mcpServers":{"johnhuang316-code-index-mcp":{"command":"uvx","args":["code-index-mcp"]}}}' \
+    > /home/agent/.claude.json && \
+    chown agent:agent /home/agent/.claude.json
 
 # Copy the entrypoint script that sets up the firewall
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
