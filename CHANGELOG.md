@@ -5,6 +5,18 @@ All notable changes to rustyolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-03-24
+
+### Added
+- **Docker image: Pre-installed code-index-mcp MCP server** ([#40](https://github.com/brooksomics/llm-rustyolo/pull/40))
+  - Installed `uv`/`uvx` (Astral's Python package manager) to support running MCP servers without a separate install step
+  - Bundled [code-index-mcp](https://github.com/johnhuang316/code-index-mcp), a tree-sitter-based code indexing and search server
+  - Configured the server in `/home/agent/.claude.json` so it is active automatically on container startup
+  - Fixed home directory ownership at runtime to ensure MCP caches work correctly under the remapped UID/GID
+
+### Documentation
+- Added MCP Servers section to README covering bundled servers, how to add more, and security considerations
+
 ## [0.6.0] - 2026-01-23
 
 ### Changed

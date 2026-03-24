@@ -90,6 +90,9 @@ groupmod -o -g "$AGENT_GID" agent
 # but we manually fix permissions below, so suppress this error
 usermod -o -u "$AGENT_UID" -g "$AGENT_GID" agent 2>/dev/null || true
 
+# Fix ownership of agent home directory (needed for MCP servers, uv cache, etc.)
+chown -R "$AGENT_UID:$AGENT_GID" /home/agent 2>/dev/null || true
+
 # Fix permissions on mounted volumes
 # Note: We exclude .git directories to avoid permission issues on macOS
 echo "[RustyYOLO Permissions] Fixing ownership for project directory: /app"

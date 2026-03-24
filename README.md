@@ -138,6 +138,17 @@ rustyolo claude
 
 See [docs/guides/configuration.md](./docs/guides/configuration.md) for detailed configuration guide and examples.
 
+## MCP Servers
+
+The Docker image ships with [code-index-mcp](https://github.com/johnhuang316/code-index-mcp) pre-installed. This MCP server provides tree-sitter-based code indexing and search, helping Claude find relevant code faster and reducing token usage on large codebases. It runs entirely locally with no network access required.
+
+You can add more MCP servers inside a running container using `claude mcp add`. However, since the container is ephemeral, any servers added at runtime will not persist across restarts.
+
+**Security warning:** MCP servers run inside the sandbox with the same permissions as Claude Code. While they inherit all four security layers (filesystem, privilege, network, syscall isolation), be aware that:
+- MCP servers that require network access will need their domains added to `--allow-domains`, expanding the network surface
+- Any MCP server can read/write files accessible to the agent (your mounted project directory)
+- Only install MCP servers from sources you trust
+
 ## Keeping Up-to-Date
 
 ### Homebrew Installation
